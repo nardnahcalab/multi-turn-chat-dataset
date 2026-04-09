@@ -1,0 +1,210 @@
+dataset:
+  name: "multi-turn-image-chat"
+  version: "1.0.0"
+  description: "Synthetic multi-turn image conversations using Wikipedia images for benchmarking multimodal inference with prefix caching"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_image_chat.parquet"
+  seed: 42
+
+images:
+  count: 150
+  cache_file: "data/wikipedia_images.json"
+  min_width: 400
+  min_height: 300
+  # Wikipedia article topics to sample images from
+  topics:
+    - category: "nature"
+      articles:
+        - "Grand Canyon"
+        - "Great Barrier Reef"
+        - "Amazon rainforest"
+        - "Serengeti"
+        - "Aurora borealis"
+        - "Mount Everest"
+        - "Niagara Falls"
+        - "Sahara"
+        - "Galápagos Islands"
+        - "Yellowstone National Park"
+    - category: "architecture"
+      articles:
+        - "Eiffel Tower"
+        - "Colosseum"
+        - "Taj Mahal"
+        - "Great Wall of China"
+        - "Sagrada Família"
+        - "Sydney Opera House"
+        - "Parthenon"
+        - "Burj Khalifa"
+        - "Notre-Dame de Paris"
+        - "Machu Picchu"
+    - category: "art"
+      articles:
+        - "Mona Lisa"
+        - "Starry Night"
+        - "The Last Supper (Leonardo)"
+        - "Girl with a Pearl Earring"
+        - "The Birth of Venus"
+        - "The Persistence of Memory"
+        - "Guernica (Picasso)"
+        - "The Great Wave off Kanagawa"
+        - "American Gothic"
+        - "The Scream"
+    - category: "science"
+      articles:
+        - "DNA"
+        - "Solar System"
+        - "Hubble Space Telescope"
+        - "Large Hadron Collider"
+        - "International Space Station"
+        - "Mars"
+        - "Saturn"
+        - "Cell (biology)"
+        - "Lightning"
+        - "Volcano"
+    - category: "history"
+      articles:
+        - "Ancient Egypt"
+        - "Roman Empire"
+        - "World War II"
+        - "Apollo 11"
+        - "Pompeii"
+        - "Terracotta Army"
+        - "Stonehenge"
+        - "Viking Age"
+        - "Renaissance"
+        - "Industrial Revolution"
+    - category: "wildlife"
+      articles:
+        - "African elephant"
+        - "Bengal tiger"
+        - "Bald eagle"
+        - "Giant panda"
+        - "Great white shark"
+        - "Blue whale"
+        - "Snow leopard"
+        - "Orangutan"
+        - "Emperor penguin"
+        - "Monarch butterfly"
+    - category: "geography"
+      articles:
+        - "Earth"
+        - "Pacific Ocean"
+        - "Mount Kilimanjaro"
+        - "Victoria Falls"
+        - "Matterhorn"
+        - "Dead Sea"
+        - "Antarctic"
+        - "Iceland"
+        - "Ha Long Bay"
+        - "Bora Bora"
+    - category: "food"
+      articles:
+        - "Sushi"
+        - "Pizza"
+        - "Chocolate"
+        - "Wine"
+        - "Dim sum"
+        - "Curry"
+        - "Bread"
+        - "Coffee"
+        - "Cheese"
+        - "Pasta"
+    - category: "technology"
+      articles:
+        - "Microprocessor"
+        - "Hubble Space Telescope"
+        - "Space Shuttle"
+        - "Steam locomotive"
+        - "Robotics"
+        - "3D printing"
+        - "Microscope"
+        - "Satellite"
+        - "Wind turbine"
+        - "Solar panel"
+    - category: "culture"
+      articles:
+        - "Carnival"
+        - "Tea ceremony"
+        - "Flamenco"
+        - "Holi"
+        - "Chinese New Year"
+        - "Day of the Dead"
+        - "Kimono"
+        - "Ballet"
+        - "Calligraphy"
+        - "Origami"
+
+turns:
+  min: 1
+  max: 30
+  distribution:
+    short:
+      count: 100
+      min_turns: 1
+      max_turns: 3
+    medium:
+      count: 200
+      min_turns: 4
+      max_turns: 10
+    long:
+      count: 150
+      min_turns: 11
+      max_turns: 20
+    very_long:
+      count: 50
+      min_turns: 21
+      max_turns: 30
+
+conversation_types:
+  - name: "image_description"
+    weight: 0.20
+    description: "Describe and explain what is shown in the image"
+
+  - name: "visual_analysis"
+    weight: 0.20
+    description: "Analyze composition, colors, lighting, and visual elements"
+
+  - name: "contextual_discussion"
+    weight: 0.15
+    description: "Discuss the historical, cultural, or scientific context of the image"
+
+  - name: "creative_interpretation"
+    weight: 0.15
+    description: "Explore artistic, narrative, or emotional interpretations"
+
+  - name: "comparison"
+    weight: 0.10
+    description: "Compare with similar subjects, styles, or scenes"
+
+  - name: "educational"
+    weight: 0.10
+    description: "Use the image as a starting point for learning and teaching"
+
+  - name: "technical_photography"
+    weight: 0.10
+    description: "Discuss photographic or artistic techniques used"
+
+response_length:
+  short:
+    min_words: 30
+    max_words: 100
+  medium:
+    min_words: 100
+    max_words: 300
+  long:
+    min_words: 300
+    max_words: 700
+  length_distribution_by_turn:
+    early:
+      short: 0.2
+      medium: 0.5
+      long: 0.3
+    middle:
+      short: 0.15
+      medium: 0.4
+      long: 0.45
+    late:
+      short: 0.1
+      medium: 0.3
+      long: 0.6

@@ -7,7 +7,7 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 | Type | Status | Description |
 |------|--------|-------------|
 | **text/** | Available | Pure text multi-turn conversations |
-| **image/** | Planned | Multi-turn with inline image references |
+| **image/** | Available | Multi-turn with Wikipedia image references |
 | **pdf/** | Available | Multi-turn with arXiv PDF document context |
 
 ## Text Dataset
@@ -261,6 +261,113 @@ Extends the text dataset schema with PDF-specific columns:
 - **89 unique arXiv papers** across cs.AI, cs.CL, cs.CV, cs.LG
 - **7 conversation types** with configurable weights
 
+## Image Dataset
+
+Multi-turn conversations about Wikipedia images across 10 diverse topics. Each conversation references a real image via URL, simulating vision-language model workflows where users ask follow-up questions about visual content.
+
+### Quick Start
+
+```bash
+# Setup (same venv as text dataset)
+source .venv/bin/activate
+
+# Generate all formats (fetches images from 100 Wikipedia articles, generates 500 conversations)
+python image/generate.py
+
+# Reuse cached images (skip Wikipedia API calls)
+python image/generate.py --skip-fetch
+
+# Generate only aiperf JSONL
+python image/generate.py --skip-fetch --format aiperf
+```
+
+### How It Works
+
+1. **Fetches** images from 100 Wikipedia articles across 10 topic categories
+2. **Balances** images evenly across topics (15 per topic from the 150 collected)
+3. **Caches** image metadata locally (`image/data/wikipedia_images.json`)
+4. **Generates** multi-turn conversations where the first message includes the image URL in `image_url` multimodal format
+5. Subsequent turns are text-only follow-ups about the image
+
+### Topics
+
+Images are sourced from Wikipedia articles spanning 10 categories:
+
+| Topic | Example Articles |
+|-------|-----------------|
+| nature | Grand Canyon, Great Barrier Reef, Aurora borealis |
+| architecture | Eiffel Tower, Colosseum, Taj Mahal, Sagrada Familia |
+| art | Mona Lisa, Starry Night, The Great Wave off Kanagawa |
+| science | DNA, Solar System, Large Hadron Collider |
+| history | Ancient Egypt, Apollo 11, Pompeii, Stonehenge |
+| wildlife | African elephant, Bengal tiger, Emperor penguin |
+| geography | Mount Kilimanjaro, Victoria Falls, Ha Long Bay |
+| food | Sushi, Pizza, Dim sum, Coffee |
+| technology | Microprocessor, Space Shuttle, Robotics |
+| culture | Carnival, Tea ceremony, Flamenco, Holi |
+
+### Conversation Types
+
+| Type | Weight | Description |
+|------|--------|-------------|
+| image_description | 20% | Describe and explain what is shown |
+| visual_analysis | 20% | Analyze composition, colors, lighting |
+| contextual_discussion | 15% | Historical, cultural, or scientific context |
+| creative_interpretation | 15% | Artistic, narrative, or emotional interpretation |
+| comparison | 10% | Compare with similar subjects or styles |
+| educational | 10% | Use the image as a learning starting point |
+| technical_photography | 10% | Discuss photographic techniques |
+
+### Output Formats
+
+| File | Format | Size | aiperf `--custom-dataset-type` |
+|------|--------|------|-------------------------------|
+| `multi_turn_image_chat.parquet` | Parquet | ~1.6 MB | N/A |
+| `multi_turn_image_chat.jsonl` | JSONL | ~0.5 MB | `multi_turn` |
+| `multi_turn_image_chat_mooncake.jsonl` | JSONL | ~99 MB | `mooncake_trace` |
+
+### Using with aiperf
+
+```bash
+# multi_turn format (lightweight, image URL in first turn text)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file image/data/multi_turn_image_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --streaming --url localhost:8000 --concurrency 10
+
+# mooncake_trace format (full message arrays with multimodal content)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file image/data/multi_turn_image_chat_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --streaming --url localhost:8000 --concurrency 10
+```
+
+### Schema (Parquet)
+
+Extends the text dataset schema with image-specific columns:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `conversation_type` | string | Type of analysis (e.g., `image_description`, `visual_analysis`) |
+| `image_title` | string | Wikipedia image title |
+| `image_url` | string | Direct image URL (Wikimedia Commons) |
+| `image_topic` | string | Topic category (e.g., `nature`, `architecture`) |
+| `source_article` | string | Wikipedia article the image was sourced from |
+| `image_width` | int | Image width in pixels |
+| `image_height` | int | Image height in pixels |
+| `messages` | string (JSON) | First user message uses `image_url` multimodal format |
+
+### Default Dataset Stats
+
+- **500 conversations**, **~3M estimated tokens**
+- Turn range: **1-30**, mean: **~10**
+- **141 unique images** across **10 topic categories**
+- **7 conversation types** with configurable weights
+
 ## Project Structure
 
 ```
@@ -283,7 +390,14 @@ multi-turn-chat-dataset/
 │       ├── multi_turn_pdf_chat.parquet         # Full dataset (Parquet)
 │       ├── multi_turn_pdf_chat.jsonl           # aiperf multi_turn format
 │       └── multi_turn_pdf_chat_mooncake.jsonl  # aiperf mooncake_trace (generated, not in git)
-├── image/                   # (planned)
+├── image/
+│   ├── generate.py          # Generation script (fetches Wikipedia images)
+│   ├── config.yaml          # Configuration
+│   └── data/
+│       ├── wikipedia_images.json                  # Cached image metadata
+│       ├── multi_turn_image_chat.parquet           # Full dataset (Parquet)
+│       ├── multi_turn_image_chat.jsonl             # aiperf multi_turn format
+│       └── multi_turn_image_chat_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
 └── .gitignore
 ```
 
