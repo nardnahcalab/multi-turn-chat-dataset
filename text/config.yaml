@@ -1,0 +1,97 @@
+dataset:
+  name: "multi-turn-text-chat"
+  version: "1.0.0"
+  description: "Synthetic multi-turn text conversations for benchmarking inference with prefix caching"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_text_chat.parquet"
+  seed: 42
+
+turns:
+  min: 1
+  max: 50
+  # Distribution buckets: how many conversations per turn-count range
+  distribution:
+    short:    # 1-5 turns
+      count: 100
+      min_turns: 1
+      max_turns: 5
+    medium:   # 6-15 turns
+      count: 150
+      min_turns: 6
+      max_turns: 15
+    long:     # 16-30 turns
+      count: 150
+      min_turns: 16
+      max_turns: 30
+    very_long: # 31-50 turns
+      count: 100
+      min_turns: 31
+      max_turns: 50
+
+topics:
+  - name: "customer_support"
+    weight: 0.15
+    system_prompt: "You are a helpful customer support agent for an e-commerce platform. Be professional, empathetic, and solution-oriented."
+    description: "Product issues, billing, returns, shipping, account problems"
+
+  - name: "coding_help"
+    weight: 0.20
+    system_prompt: "You are an expert software engineer assistant. Help with debugging, code reviews, architecture decisions, and implementation guidance."
+    description: "Debugging, code review, architecture, API design, DevOps"
+
+  - name: "creative_writing"
+    weight: 0.10
+    system_prompt: "You are a creative writing assistant. Help craft stories, develop characters, refine prose, and explore narrative techniques."
+    description: "Stories, poetry, essays, worldbuilding, character development"
+
+  - name: "tutoring"
+    weight: 0.15
+    system_prompt: "You are a patient and knowledgeable tutor. Explain concepts clearly, use examples, and adapt to the student's level of understanding."
+    description: "Math, science, history, language learning, test prep"
+
+  - name: "travel_planning"
+    weight: 0.10
+    system_prompt: "You are an experienced travel advisor. Help plan trips, suggest destinations, provide logistics advice, and share local tips."
+    description: "Itineraries, destinations, budgets, logistics, local recommendations"
+
+  - name: "data_analysis"
+    weight: 0.10
+    system_prompt: "You are a data science assistant. Help with data analysis, visualization, statistical methods, and interpreting results."
+    description: "SQL queries, pandas, statistics, visualization, ML pipelines"
+
+  - name: "business_strategy"
+    weight: 0.10
+    system_prompt: "You are a business strategy consultant. Provide insights on market analysis, competitive positioning, growth strategies, and operational efficiency."
+    description: "Market analysis, growth strategy, operations, financial planning"
+
+  - name: "health_fitness"
+    weight: 0.10
+    system_prompt: "You are a knowledgeable health and fitness advisor. Provide evidence-based guidance on exercise routines, nutrition, and wellness habits."
+    description: "Workout plans, nutrition, recovery, habit formation, wellness"
+
+response_length:
+  # Token count ranges for assistant responses (approximate word count)
+  short:
+    min_words: 20
+    max_words: 80
+  medium:
+    min_words: 80
+    max_words: 250
+  long:
+    min_words: 250
+    max_words: 600
+  # Longer conversations should have more long responses to grow context
+  length_distribution_by_turn:
+    early:   # turns 1-5
+      short: 0.3
+      medium: 0.5
+      long: 0.2
+    middle:  # turns 6-20
+      short: 0.2
+      medium: 0.4
+      long: 0.4
+    late:    # turns 21+
+      short: 0.1
+      medium: 0.3
+      long: 0.6
