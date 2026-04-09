@@ -8,7 +8,7 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 |------|--------|-------------|
 | **text/** | Available | Pure text multi-turn conversations |
 | **image/** | Planned | Multi-turn with inline image references |
-| **pdf/** | Planned | Multi-turn with PDF document context |
+| **pdf/** | Available | Multi-turn with arXiv PDF document context |
 
 ## Text Dataset
 
@@ -173,6 +173,94 @@ Edit `text/config.yaml` to customize:
 - Response length distributions (short/medium/long) by conversation phase
 - Random seed for reproducibility
 
+## PDF Dataset
+
+Multi-turn conversations about arXiv research papers. Each conversation references a real PDF via URL, simulating document analysis workflows where context grows as users ask follow-up questions.
+
+### Quick Start
+
+```bash
+# Setup (same venv as text dataset)
+source .venv/bin/activate
+
+# Generate all formats (fetches 100 arXiv papers, generates 500 conversations)
+python pdf/generate.py
+
+# Reuse cached papers (skip arXiv API calls)
+python pdf/generate.py --skip-fetch
+
+# Generate only aiperf JSONL
+python pdf/generate.py --skip-fetch --format aiperf
+```
+
+### How It Works
+
+1. **Fetches** metadata for ~100 recent AI/ML papers from arXiv (categories: cs.AI, cs.CL, cs.CV, cs.LG)
+2. **Caches** paper metadata locally (`pdf/data/arxiv_papers.json`)
+3. **Generates** multi-turn conversations where the first message references the PDF URL
+4. The PDF URL is included in the first user message using multimodal content format
+5. Subsequent turns are text-only follow-ups about the paper
+
+### Conversation Types
+
+| Type | Weight | Description |
+|------|--------|-------------|
+| paper_summary | 20% | Summarize and explain the paper |
+| methodology_deep_dive | 20% | Deep dive into methods and architecture |
+| results_analysis | 15% | Analyze experimental results and tables |
+| critical_review | 15% | Critique strengths, weaknesses, limitations |
+| comparison | 10% | Compare with related work |
+| implementation | 10% | Discuss implementation and reproducibility |
+| brainstorm_extensions | 10% | Brainstorm improvements and future work |
+
+### Output Formats
+
+| File | Format | Size | aiperf `--custom-dataset-type` |
+|------|--------|------|-------------------------------|
+| `multi_turn_pdf_chat.parquet` | Parquet | ~1.6 MB | N/A |
+| `multi_turn_pdf_chat.jsonl` | JSONL | ~0.5 MB | `multi_turn` |
+| `multi_turn_pdf_chat_mooncake.jsonl` | JSONL | ~97 MB | `mooncake_trace` |
+
+### Using with aiperf
+
+```bash
+# multi_turn format (lightweight, PDF URL in first turn text)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file pdf/data/multi_turn_pdf_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --streaming --url localhost:8000 --concurrency 10
+
+# mooncake_trace format (full message arrays with multimodal content)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file pdf/data/multi_turn_pdf_chat_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --streaming --url localhost:8000 --concurrency 10
+```
+
+### Schema (Parquet)
+
+Extends the text dataset schema with PDF-specific columns:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `conversation_type` | string | Type of analysis (e.g., `paper_summary`, `critical_review`) |
+| `paper_arxiv_id` | string | arXiv paper ID |
+| `paper_title` | string | Paper title |
+| `paper_pdf_url` | string | Direct PDF URL (e.g., `https://arxiv.org/pdf/2401.12345v1`) |
+| `paper_categories` | string (JSON) | arXiv categories |
+| `messages` | string (JSON) | First user message uses multimodal format with file reference |
+
+### Default Dataset Stats
+
+- **500 conversations**, **~3M estimated tokens**
+- Turn range: **1-30**, mean: **~10**
+- **89 unique arXiv papers** across cs.AI, cs.CL, cs.CV, cs.LG
+- **7 conversation types** with configurable weights
+
 ## Project Structure
 
 ```
@@ -186,9 +274,17 @@ multi-turn-chat-dataset/
 │   └── data/
 │       ├── multi_turn_text_chat.parquet        # Full dataset (Parquet)
 │       ├── multi_turn_text_chat.jsonl           # aiperf multi_turn format
-│       └── multi_turn_text_chat_mooncake.jsonl  # aiperf mooncake_trace format (generated, not in git)
+│       └── multi_turn_text_chat_mooncake.jsonl  # aiperf mooncake_trace (generated, not in git)
+├── pdf/
+│   ├── generate.py          # Generation script (fetches arXiv papers)
+│   ├── config.yaml          # Configuration
+│   └── data/
+│       ├── arxiv_papers.json                   # Cached paper metadata
+│       ├── multi_turn_pdf_chat.parquet         # Full dataset (Parquet)
+│       ├── multi_turn_pdf_chat.jsonl           # aiperf multi_turn format
+│       └── multi_turn_pdf_chat_mooncake.jsonl  # aiperf mooncake_trace (generated, not in git)
 ├── image/                   # (planned)
-└── pdf/                     # (planned)
+└── .gitignore
 ```
 
 ## License

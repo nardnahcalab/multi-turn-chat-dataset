@@ -1,0 +1,94 @@
+dataset:
+  name: "multi-turn-pdf-chat"
+  version: "1.0.0"
+  description: "Synthetic multi-turn PDF conversations using arXiv papers for benchmarking inference with prefix caching"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_pdf_chat.parquet"
+  seed: 42
+
+papers:
+  count: 100
+  cache_file: "data/arxiv_papers.json"
+  categories:
+    - "cs.AI"
+    - "cs.CL"
+    - "cs.CV"
+    - "cs.LG"
+  # Fetch recent papers sorted by submission date
+  sort_by: "submittedDate"
+  max_results_per_category: 30
+
+turns:
+  min: 1
+  max: 30
+  distribution:
+    short:
+      count: 100
+      min_turns: 1
+      max_turns: 3
+    medium:
+      count: 200
+      min_turns: 4
+      max_turns: 10
+    long:
+      count: 150
+      min_turns: 11
+      max_turns: 20
+    very_long:
+      count: 50
+      min_turns: 21
+      max_turns: 30
+
+conversation_types:
+  - name: "paper_summary"
+    weight: 0.20
+    description: "Summarize and explain the paper"
+
+  - name: "methodology_deep_dive"
+    weight: 0.20
+    description: "Deep dive into methods, architecture, and techniques"
+
+  - name: "results_analysis"
+    weight: 0.15
+    description: "Analyze experimental results, tables, and figures"
+
+  - name: "critical_review"
+    weight: 0.15
+    description: "Critique strengths, weaknesses, and limitations"
+
+  - name: "comparison"
+    weight: 0.10
+    description: "Compare with related work and prior approaches"
+
+  - name: "implementation"
+    weight: 0.10
+    description: "Discuss implementation details and reproducibility"
+
+  - name: "brainstorm_extensions"
+    weight: 0.10
+    description: "Brainstorm extensions, improvements, and future work"
+
+response_length:
+  short:
+    min_words: 30
+    max_words: 100
+  medium:
+    min_words: 100
+    max_words: 300
+  long:
+    min_words: 300
+    max_words: 700
+  length_distribution_by_turn:
+    early:
+      short: 0.2
+      medium: 0.5
+      long: 0.3
+    middle:
+      short: 0.15
+      medium: 0.4
+      long: 0.45
+    late:
+      short: 0.1
+      medium: 0.3
+      long: 0.6
