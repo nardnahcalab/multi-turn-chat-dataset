@@ -19,12 +19,72 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Generate with defaults (500 conversations, seed=42)
+# Generate all formats (Parquet + aiperf JSONL + mooncake JSONL)
 python text/generate.py
+
+# Generate only specific format
+python text/generate.py --format parquet
+python text/generate.py --format aiperf      # multi_turn JSONL only
+python text/generate.py --format mooncake    # mooncake_trace JSONL only
 
 # Custom generation
 python text/generate.py --num 1000 --seed 123
-python text/generate.py --config text/config.yaml --output my_dataset.parquet
+```
+
+### Output Formats
+
+The generator produces three output files:
+
+| File | Format | Size | aiperf `--custom-dataset-type` |
+|------|--------|------|-------------------------------|
+| `multi_turn_text_chat.parquet` | Parquet | ~2 MB | N/A (analysis/HuggingFace) |
+| `multi_turn_text_chat.jsonl` | JSONL | ~0.8 MB | `multi_turn` |
+| `multi_turn_text_chat_mooncake.jsonl` | JSONL | ~227 MB | `mooncake_trace` |
+
+### Using with aiperf
+
+The JSONL files are designed for direct use with [NVIDIA aiperf](https://github.com/ai-dynamo/aiperf).
+
+**Option 1: `multi_turn` format** (recommended — lightweight, user messages only)
+
+aiperf sends user messages and accumulates live server responses into conversation history automatically. Each turn includes the growing conversation prefix, exercising prefix caching.
+
+```bash
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --endpoint /v1/chat/completions \
+    --streaming \
+    --url localhost:8000 \
+    --input-file text/data/multi_turn_text_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --concurrency 10
+```
+
+JSONL schema (one line per conversation):
+```json
+{"session_id": "uuid", "turns": [{"text": "user msg 1"}, {"text": "user msg 2"}, ...]}
+```
+
+**Option 2: `mooncake_trace` format** (full control — pre-canned responses included)
+
+Each line is a single turn with the complete message array up to that point. Gives full control over the exact prompt (including system prompt and assistant responses) sent at each turn.
+
+```bash
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --endpoint /v1/chat/completions \
+    --streaming \
+    --url localhost:8000 \
+    --input-file text/data/multi_turn_text_chat_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --concurrency 10
+```
+
+JSONL schema (one line per turn):
+```json
+{"session_id": "uuid", "messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}], "output_length": 150}
 ```
 
 ### Schema
@@ -124,7 +184,9 @@ multi-turn-chat-dataset/
 │   ├── generate.py          # Generation script
 │   ├── config.yaml          # Configuration
 │   └── data/
-│       └── multi_turn_text_chat.parquet
+│       ├── multi_turn_text_chat.parquet        # Full dataset (Parquet)
+│       ├── multi_turn_text_chat.jsonl           # aiperf multi_turn format
+│       └── multi_turn_text_chat_mooncake.jsonl  # aiperf mooncake_trace format (generated, not in git)
 ├── image/                   # (planned)
 └── pdf/                     # (planned)
 ```

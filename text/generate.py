@@ -853,12 +853,99 @@ class ConversationGenerator:
 # Main
 # ---------------------------------------------------------------------------
 
+def convert_to_aiperf_multi_turn(conversations: list[dict]) -> list[dict]:
+    """Convert conversations to aiperf multi_turn JSONL format.
+
+    aiperf multi_turn format (one JSON object per line):
+        {"session_id": "...", "turns": [{"text": "user msg"}, {"text": "user msg 2"}, ...]}
+
+    This uses the `deltas_without_responses` context mode — aiperf sends only
+    user messages and accumulates live server responses into conversation history
+    automatically. This is ideal for benchmarking prefix caching because each
+    turn's request includes the full conversation prefix.
+
+    Usage with aiperf:
+        aiperf profile \\
+            --model <model> \\
+            --endpoint-type chat \\
+            --input-file multi_turn_text_chat.jsonl \\
+            --custom-dataset-type multi_turn \\
+            --streaming --url localhost:8000
+
+    Returns:
+        List of dicts, each representing one conversation line for JSONL output.
+    """
+    aiperf_entries = []
+    for conv in conversations:
+        messages = json.loads(conv["messages"])
+        turns = []
+        for msg in messages:
+            if msg["role"] == "user":
+                turns.append({"text": msg["content"]})
+        if turns:
+            aiperf_entries.append({
+                "session_id": conv["conversation_id"],
+                "turns": turns,
+            })
+    return aiperf_entries
+
+
+def convert_to_aiperf_mooncake(conversations: list[dict], block_size: int = 512) -> list[dict]:
+    """Convert conversations to aiperf mooncake_trace JSONL format.
+
+    This format sends the full message array (system + user + assistant) per turn,
+    using the `message_array_with_responses` context mode. Each line represents a
+    single turn within a session, with the complete conversation history up to that
+    point. This gives full control over the exact prompt sent to the server.
+
+    Format (one JSON object per line):
+        {"session_id": "...", "messages": [...], "output_length": N}
+
+    Usage with aiperf:
+        aiperf profile \\
+            --model <model> \\
+            --endpoint-type chat \\
+            --input-file multi_turn_text_chat_mooncake.jsonl \\
+            --custom-dataset-type mooncake_trace \\
+            --streaming --url localhost:8000
+
+    Returns:
+        List of dicts, one per turn across all conversations.
+    """
+    entries = []
+    for conv in conversations:
+        messages = json.loads(conv["messages"])
+        session_id = conv["conversation_id"]
+        # Walk through the conversation, building up context each turn
+        context = []
+        for i, msg in enumerate(messages):
+            context.append(msg)
+            # Emit an entry after each assistant message (= end of a turn pair)
+            if msg["role"] == "assistant":
+                # Estimate output length for this assistant response
+                output_tokens = max(1, len(msg["content"]) // 4)
+                entry = {
+                    "session_id": session_id,
+                    "messages": [m for m in context],  # full context up to here
+                    "output_length": output_tokens,
+                }
+                # Add delay for turns after the first (simulate user think time)
+                turn_index = len([m for m in context if m["role"] == "assistant"])
+                if turn_index > 1:
+                    entry["delay"] = 0  # no artificial delay; set >0 to simulate think time
+                entries.append(entry)
+    return entries
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate synthetic multi-turn chat dataset")
     parser.add_argument("--config", default="config.yaml", help="Path to config YAML")
     parser.add_argument("--num", type=int, default=None, help="Override number of conversations")
     parser.add_argument("--seed", type=int, default=None, help="Override random seed")
     parser.add_argument("--output", default=None, help="Override output path")
+    parser.add_argument("--format", choices=["all", "parquet", "aiperf", "mooncake"],
+                        default="all", help="Output format(s): parquet, aiperf (multi_turn JSONL), "
+                        "mooncake (mooncake_trace JSONL), or all (default)")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -890,14 +977,40 @@ def main():
     print(f"Mean tokens/conversation: {df['estimated_tokens'].mean():,.0f}")
     print(f"Max tokens (single conversation): {df['estimated_tokens'].max():,}")
 
-    # Write Parquet
+    # Determine output directory
     output_dir = Path(args.output).parent if args.output else Path(__file__).parent / config["dataset"]["output_dir"]
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = Path(args.output) if args.output else output_dir / config["dataset"]["output_filename"]
 
-    df.to_parquet(output_path, engine="pyarrow", index=False)
-    file_size_mb = output_path.stat().st_size / (1024 * 1024)
-    print(f"\nDataset written to: {output_path} ({file_size_mb:.2f} MB)")
+    fmt = args.format
+
+    # Write Parquet
+    if fmt in ("all", "parquet"):
+        parquet_path = Path(args.output) if args.output and fmt == "parquet" else output_dir / config["dataset"]["output_filename"]
+        df.to_parquet(parquet_path, engine="pyarrow", index=False)
+        file_size_mb = parquet_path.stat().st_size / (1024 * 1024)
+        print(f"\nParquet written to: {parquet_path} ({file_size_mb:.2f} MB)")
+
+    # Write aiperf multi_turn JSONL
+    if fmt in ("all", "aiperf"):
+        aiperf_entries = convert_to_aiperf_multi_turn(conversations)
+        jsonl_path = output_dir / config["dataset"]["output_filename"].replace(".parquet", ".jsonl")
+        with open(jsonl_path, "w") as f:
+            for entry in aiperf_entries:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        file_size_mb = jsonl_path.stat().st_size / (1024 * 1024)
+        print(f"aiperf multi_turn JSONL written to: {jsonl_path} ({file_size_mb:.2f} MB)")
+        print(f"  Usage: aiperf profile --input-file {jsonl_path} --custom-dataset-type multi_turn ...")
+
+    # Write aiperf mooncake_trace JSONL
+    if fmt in ("all", "mooncake"):
+        mooncake_entries = convert_to_aiperf_mooncake(conversations)
+        mooncake_path = output_dir / config["dataset"]["output_filename"].replace(".parquet", "_mooncake.jsonl")
+        with open(mooncake_path, "w") as f:
+            for entry in mooncake_entries:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        file_size_mb = mooncake_path.stat().st_size / (1024 * 1024)
+        print(f"aiperf mooncake_trace JSONL written to: {mooncake_path} ({file_size_mb:.2f} MB)")
+        print(f"  Usage: aiperf profile --input-file {mooncake_path} --custom-dataset-type mooncake_trace ...")
 
 
 if __name__ == "__main__":

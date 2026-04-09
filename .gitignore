@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .DS_Store
 *.egg-info/
+
+# mooncake JSONL files are large (>200MB) and can be regenerated
+*_mooncake.jsonl
