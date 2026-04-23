@@ -1,6 +1,6 @@
 # Architecture
 
-Comprehensive technical reference for the **multi-turn-chat-dataset** repository. This document covers the system design, data flows, code structure, and output format specifications for all three dataset generators.
+Comprehensive technical reference for the **multi-turn-chat-dataset** repository. This document covers the system design, data flows, code structure, and output format specifications for all four dataset generators.
 
 ## Table of Contents
 
@@ -11,6 +11,7 @@ Comprehensive technical reference for the **multi-turn-chat-dataset** repository
 - [Text Dataset Generator](#text-dataset-generator)
 - [PDF Dataset Generator](#pdf-dataset-generator)
 - [Image Dataset Generator](#image-dataset-generator)
+- [Reasoning Dataset Generator](#reasoning-dataset-generator)
 - [Output Format Specifications](#output-format-specifications)
 - [Configuration System](#configuration-system)
 - [Extensibility Guide](#extensibility-guide)
@@ -59,18 +60,18 @@ multi-turn-chat-dataset/
 │       ├── multi_turn_pdf_chat.jsonl           # ~0.5 MB (aiperf multi_turn)
 │       └── multi_turn_pdf_chat_mooncake.jsonl  # ~97 MB (gitignored)
 │
-└── image/
-    ├── generate.py           # 1,059 lines — Wikipedia image conversation generator
-    ├── config.yaml           # 210 lines — configuration
-    └── data/
-        ├── wikipedia_images.json                  # Cached image metadata (150 images)
-        ├── multi_turn_image_chat.parquet           # ~1.6 MB
-        ├── multi_turn_image_chat.jsonl             # ~0.5 MB (aiperf multi_turn)
-        └── multi_turn_image_chat_mooncake.jsonl    # ~99 MB (gitignored)
-
+├── image/
+│   ├── generate.py           # 1,059 lines — Wikipedia image conversation generator
+│   ├── config.yaml           # 210 lines — configuration
+│   └── data/
+│       ├── wikipedia_images.json                  # Cached image metadata (150 images)
+│       ├── multi_turn_image_chat.parquet           # ~1.6 MB
+│       ├── multi_turn_image_chat.jsonl             # ~0.5 MB (aiperf multi_turn)
+│       └── multi_turn_image_chat_mooncake.jsonl    # ~99 MB (gitignored)
+│
 └── reasoning/
-    ├── generate.py           # ~890 lines — deep reasoning conversation generator
-    ├── config.yaml           # ~100 lines — configuration
+    ├── generate.py           # 1,242 lines — deep reasoning conversation generator
+    ├── config.yaml           # 97 lines — configuration
     └── data/
         ├── multi_turn_reasoning_chat.parquet           # ~3.2 MB
         ├── multi_turn_reasoning_chat.jsonl             # ~0.8 MB (aiperf multi_turn)
@@ -138,7 +139,7 @@ PDF and image generators fetch metadata from external APIs (arXiv, Wikipedia) an
 
 ## Shared Architecture
 
-All three generators follow an identical architectural pattern. Understanding one makes the others immediately familiar.
+All four generators follow an identical architectural pattern. Understanding one makes the others immediately familiar.
 
 ### Generation Pipeline
 
@@ -238,6 +239,7 @@ Word count ranges per bucket:
 | text | 20-80 | 80-250 | 250-600 |
 | pdf | 30-100 | 100-300 | 300-700 |
 | image | 30-100 | 100-300 | 300-700 |
+| reasoning | 50-150 | 150-400 | 400-900 |
 
 **Padding**: If a response is shorter than the target, extension sentences are appended in a loop until the target is met.
 
@@ -252,6 +254,7 @@ Conversations are allocated across length buckets to cover different prefix cach
 | text | 100 (1-5) | 150 (6-15) | 150 (16-30) | 100 (31-50) | 500 |
 | pdf | 100 (1-3) | 200 (4-10) | 150 (11-20) | 50 (21-30) | 500 |
 | image | 100 (1-3) | 200 (4-10) | 150 (11-20) | 50 (21-30) | 500 |
+| reasoning | 80 (1-5) | 200 (6-15) | 150 (16-25) | 70 (26-40) | 500 |
 
 ### CLI Interface
 
@@ -647,7 +650,7 @@ The first user message uses the OpenAI-compatible **image_url** format:
 
 ## Reasoning Dataset Generator
 
-**File**: `reasoning/generate.py` (~890 lines)
+**File**: `reasoning/generate.py` (1,242 lines)
 
 ### Architecture
 
@@ -738,11 +741,12 @@ All messages are text-only (no multimodal content):
 
 | Section | Lines | % |
 |---------|-------|---|
-| Topic templates + content blocks | ~470 | 53% |
-| ReasoningConversationGenerator class | ~200 | 22% |
-| aiperf export functions | ~80 | 9% |
-| CLI / main() | ~80 | 9% |
-| Imports / boilerplate | ~60 | 7% |
+| Topic templates + content blocks | ~650 | 52% |
+| ReasoningConversationGenerator class | ~270 | 22% |
+| aiperf export functions | ~80 | 6% |
+| CLI / main() | ~80 | 6% |
+| Special placeholder dictionary | ~120 | 10% |
+| Imports / boilerplate | ~42 | 4% |
 
 ---
 
@@ -821,6 +825,12 @@ One JSON object per line, one line per conversation. Contains only user turns (a
 
 **aiperf usage**: `--custom-dataset-type multi_turn` (context mode: `deltas_without_responses`)
 
+**Reasoning example** (text-only, same format as text):
+
+```json
+{"session_id": "uuid", "turns": [{"text": "Prove that the square root of 3 is irrational..."}, {"text": "Can you show an alternative proof using..."}]}
+```
+
 ### aiperf mooncake_trace JSONL
 
 One JSON object per line, **one line per assistant turn** (not per conversation). Each entry contains the full message array up to that point, giving complete control over the exact prompt.
@@ -874,7 +884,7 @@ dataset:           # Output metadata and generation parameters
 
 turns:             # Turn count distribution across length buckets
   min: 1
-  max: 30          # (50 for text)
+  max: 30          # (50 for text, 40 for reasoning)
   distribution:
     short:     {count: N, min_turns: A, max_turns: B}
     medium:    {count: N, min_turns: A, max_turns: B}
@@ -902,9 +912,9 @@ response_length:   # Word count targets by response bucket
 
 ## Extensibility Guide
 
-### Adding a New Topic (text generator)
+### Adding a New Topic (text or reasoning generator)
 
-1. Add template entry to `TOPIC_TEMPLATES` in `text/generate.py`:
+1. Add template entry to `TOPIC_TEMPLATES` in `text/generate.py` (or `reasoning/generate.py`):
    ```python
    "new_topic": {
        "openers": [...],
@@ -913,7 +923,7 @@ response_length:   # Word count targets by response bucket
        "fill_values": {"placeholder": ["val1", "val2", ...]}
    }
    ```
-2. Add topic config in `text/config.yaml`:
+2. Add topic config in `text/config.yaml` (or `reasoning/config.yaml`):
    ```yaml
    - name: "new_topic"
      weight: 0.10
