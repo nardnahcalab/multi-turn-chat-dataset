@@ -1,0 +1,97 @@
+dataset:
+  name: "multi-turn-reasoning-chat"
+  version: "1.0.0"
+  description: "Synthetic multi-turn deep reasoning conversations for benchmarking inference with extended thinking"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_reasoning_chat.parquet"
+  seed: 42
+
+turns:
+  min: 1
+  max: 40
+  # Distribution buckets: how many conversations per turn-count range
+  distribution:
+    short:    # 1-5 turns
+      count: 80
+      min_turns: 1
+      max_turns: 5
+    medium:   # 6-15 turns
+      count: 200
+      min_turns: 6
+      max_turns: 15
+    long:     # 16-25 turns
+      count: 150
+      min_turns: 16
+      max_turns: 25
+    very_long: # 26-40 turns
+      count: 70
+      min_turns: 26
+      max_turns: 40
+
+topics:
+  - name: "mathematical_proofs"
+    weight: 0.20
+    system_prompt: "You are a rigorous mathematician. When solving problems, show complete step-by-step proofs. State your assumptions explicitly, justify each logical step, and verify your conclusions. Use formal notation where appropriate but also provide intuitive explanations."
+    description: "Number theory, algebra, combinatorics, geometry, analysis — formal proofs and derivations"
+
+  - name: "logic_and_deduction"
+    weight: 0.15
+    system_prompt: "You are an expert in formal logic and deductive reasoning. Break down complex logical problems into clear premises and conclusions. Identify hidden assumptions, evaluate argument validity, and construct rigorous proofs. Show your reasoning chain explicitly at every step."
+    description: "Formal logic, deduction puzzles, syllogisms, truth tables, constraint satisfaction"
+
+  - name: "algorithmic_analysis"
+    weight: 0.15
+    system_prompt: "You are a computer science theorist specializing in algorithm design and analysis. Provide rigorous complexity analysis, prove correctness of algorithms, and explain trade-offs between approaches. Show your reasoning about time and space complexity step by step."
+    description: "Algorithm design, complexity proofs, optimization, data structure analysis, NP-hardness"
+
+  - name: "scientific_reasoning"
+    weight: 0.15
+    system_prompt: "You are a scientist who reasons carefully from evidence. Form hypotheses, design thought experiments, evaluate causal claims, and distinguish correlation from causation. Show your reasoning process, consider alternative explanations, and quantify uncertainty where possible."
+    description: "Hypothesis testing, experimental design, causal inference, scientific method"
+
+  - name: "philosophical_arguments"
+    weight: 0.10
+    system_prompt: "You are a careful analytical philosopher. Construct and evaluate arguments rigorously. Identify logical fallacies, examine hidden premises, consider counterarguments, and explore thought experiments. Present multiple perspectives before reaching conclusions."
+    description: "Ethical dilemmas, thought experiments, epistemology, philosophy of mind, paradoxes"
+
+  - name: "game_theory_and_strategy"
+    weight: 0.10
+    system_prompt: "You are a game theory and decision science expert. Analyze strategic interactions, compute equilibria, evaluate decision trees, and reason about optimal strategies under uncertainty. Show your payoff calculations and strategic reasoning step by step."
+    description: "Nash equilibrium, mechanism design, decision theory, auction theory, strategic reasoning"
+
+  - name: "causal_and_counterfactual"
+    weight: 0.10
+    system_prompt: "You are an expert in causal reasoning and counterfactual analysis. Construct causal diagrams, identify confounders, reason about interventions vs. observations, and analyze what-if scenarios. Be precise about the distinction between correlation, causation, and counterfactual dependence."
+    description: "Root cause analysis, counterfactual reasoning, causal graphs, intervention analysis"
+
+  - name: "puzzle_solving"
+    weight: 0.05
+    system_prompt: "You are a master puzzle solver. Approach each puzzle systematically: identify constraints, enumerate possibilities, use process of elimination, and verify your solution satisfies all conditions. Think aloud through each step so the reasoning is transparent."
+    description: "Brain teasers, lateral thinking, constraint satisfaction, riddles, combinatorial puzzles"
+
+response_length:
+  # Reasoning responses are longer than general text to accommodate chain-of-thought
+  short:
+    min_words: 50
+    max_words: 150
+  medium:
+    min_words: 150
+    max_words: 400
+  long:
+    min_words: 400
+    max_words: 900
+  # Reasoning conversations should skew toward longer responses
+  length_distribution_by_turn:
+    early:   # turns 1-5
+      short: 0.15
+      medium: 0.50
+      long: 0.35
+    middle:  # turns 6-20
+      short: 0.10
+      medium: 0.35
+      long: 0.55
+    late:    # turns 21+
+      short: 0.05
+      medium: 0.25
+      long: 0.70

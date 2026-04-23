@@ -9,6 +9,7 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 | **text/** | Available | Pure text multi-turn conversations |
 | **image/** | Available | Multi-turn with Wikipedia image references |
 | **pdf/** | Available | Multi-turn with arXiv PDF document context |
+| **reasoning/** | Available | Deep reasoning multi-turn conversations |
 
 ## Text Dataset
 
@@ -368,6 +369,119 @@ Extends the text dataset schema with image-specific columns:
 - **141 unique images** across **10 topic categories**
 - **7 conversation types** with configurable weights
 
+## Reasoning Dataset
+
+Multi-turn conversations designed to prompt deep chain-of-thought reasoning. Covers mathematical proofs, logic puzzles, algorithmic analysis, scientific reasoning, philosophical arguments, game theory, causal reasoning, and puzzle solving. Ideal for benchmarking reasoning-heavy inference workloads with long output sequences.
+
+### Quick Start
+
+```bash
+# Setup (same venv as text dataset)
+source .venv/bin/activate
+
+# Generate all formats (500 conversations, ~5.8M tokens)
+python reasoning/generate.py
+
+# Generate only specific format
+python reasoning/generate.py --format parquet
+python reasoning/generate.py --format aiperf
+python reasoning/generate.py --format mooncake
+
+# Custom generation
+python reasoning/generate.py --num 1000 --seed 123
+```
+
+### How It Works
+
+1. **Generates** multi-turn conversations where users pose complex reasoning problems
+2. System prompts instruct the model to show step-by-step reasoning, justify each logical step, and verify conclusions
+3. Follow-up turns challenge assumptions, ask for alternative approaches, request generalizations, and probe edge cases
+4. Responses include formal proofs, case analysis, complexity derivations, and structured arguments
+
+### Topics
+
+Conversations span 8 reasoning domains with configurable weights:
+
+| Topic | Weight | Description |
+|-------|--------|-------------|
+| mathematical_proofs | 20% | Number theory, algebra, combinatorics, analysis — formal proofs |
+| logic_and_deduction | 15% | Formal logic, knight/knave puzzles, syllogisms, truth tables |
+| algorithmic_analysis | 15% | Algorithm design, complexity proofs, NP-hardness reductions |
+| scientific_reasoning | 15% | Hypothesis testing, experimental design, causal inference |
+| philosophical_arguments | 10% | Ethical dilemmas, thought experiments, epistemology |
+| game_theory_and_strategy | 10% | Nash equilibrium, mechanism design, decision theory |
+| causal_and_counterfactual | 10% | Causal DAGs, counterfactual analysis, Simpson's paradox |
+| puzzle_solving | 5% | Brain teasers, constraint satisfaction, combinatorial puzzles |
+
+### Output Formats
+
+| File | Format | Size | aiperf `--custom-dataset-type` |
+|------|--------|------|-------------------------------|
+| `multi_turn_reasoning_chat.parquet` | Parquet | ~3.2 MB | N/A |
+| `multi_turn_reasoning_chat.jsonl` | JSONL | ~0.8 MB | `multi_turn` |
+| `multi_turn_reasoning_chat_mooncake.jsonl` | JSONL | ~253 MB | `mooncake_trace` |
+
+### Using with aiperf
+
+```bash
+# multi_turn format (lightweight, user reasoning prompts only)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file reasoning/data/multi_turn_reasoning_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --streaming --url localhost:8000 --concurrency 10
+
+# mooncake_trace format (full message arrays with chain-of-thought responses)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file reasoning/data/multi_turn_reasoning_chat_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --streaming --url localhost:8000 --concurrency 10
+```
+
+### Schema (Parquet)
+
+Uses the same schema as the text dataset:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `conversation_id` | string | UUID v4 identifier |
+| `topic` | string | Reasoning domain (e.g., `mathematical_proofs`, `logic_and_deduction`) |
+| `num_turns` | int | Number of user-assistant exchange pairs |
+| `num_messages` | int | Total messages including system prompt |
+| `system_prompt` | string | Reasoning-focused system instruction |
+| `messages` | string (JSON) | Full message array with chain-of-thought responses |
+| `total_characters` | int | Character count of entire conversation |
+| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
+
+### Turn Distribution
+
+| Bucket | Turns | Count | Use Case |
+|--------|-------|-------|----------|
+| Short | 1-5 | 80 | Quick single-step reasoning |
+| Medium | 6-15 | 200 | Multi-step proofs and analysis |
+| Long | 16-25 | 150 | Extended reasoning chains |
+| Very Long | 26-40 | 70 | Deep multi-round reasoning dialogues |
+
+### Default Dataset Stats
+
+- **500 conversations**, **~5.8M estimated tokens**
+- Turn range: **1-40**, mean: **~15.5**
+- Max single conversation: **~36K tokens**
+- File size: **~3.2 MB** (Parquet)
+- **8 reasoning domains** with configurable weights
+
+### Configuration
+
+Edit `reasoning/config.yaml` to customize:
+- Number of conversations and distribution across turn-count buckets
+- Topic weights and system prompts (reasoning-focused)
+- Response length distributions — skewed longer to accommodate chain-of-thought
+- Random seed for reproducibility
+
 ## Project Structure
 
 ```
@@ -398,6 +512,13 @@ multi-turn-chat-dataset/
 │       ├── multi_turn_image_chat.parquet           # Full dataset (Parquet)
 │       ├── multi_turn_image_chat.jsonl             # aiperf multi_turn format
 │       └── multi_turn_image_chat_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
+├── reasoning/
+│   ├── generate.py          # Generation script (deep reasoning conversations)
+│   ├── config.yaml          # Configuration
+│   └── data/
+│       ├── multi_turn_reasoning_chat.parquet           # Full dataset (Parquet)
+│       ├── multi_turn_reasoning_chat.jsonl             # aiperf multi_turn format
+│       └── multi_turn_reasoning_chat_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
 └── .gitignore
 ```
 

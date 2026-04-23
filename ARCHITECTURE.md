@@ -21,13 +21,14 @@ Comprehensive technical reference for the **multi-turn-chat-dataset** repository
 
 This project generates synthetic multi-turn conversation datasets for benchmarking LLM inference engines. The datasets are designed to simulate real-world conversations with naturally growing context, making them ideal for stress-testing **prefix caching**, **KV-cache management**, and **long-context inference** performance.
 
-Three dataset types target different modalities:
+Four dataset types target different modalities and reasoning depths:
 
 | Dataset | Modality | External Source | Conversations | Tokens | Turn Range |
 |---------|----------|-----------------|---------------|--------|------------|
 | **text** | Text-only | None (synthetic) | 500 | ~3.9M | 1-50 |
 | **pdf** | Text + PDF URL | arXiv papers | 500 | ~3M | 1-30 |
 | **image** | Text + Image URL | Wikipedia images | 500 | ~3M | 1-30 |
+| **reasoning** | Text-only (deep reasoning) | None (synthetic) | 500 | ~5.8M | 1-40 |
 
 ---
 
@@ -66,6 +67,14 @@ multi-turn-chat-dataset/
         ├── multi_turn_image_chat.parquet           # ~1.6 MB
         ├── multi_turn_image_chat.jsonl             # ~0.5 MB (aiperf multi_turn)
         └── multi_turn_image_chat_mooncake.jsonl    # ~99 MB (gitignored)
+
+└── reasoning/
+    ├── generate.py           # ~890 lines — deep reasoning conversation generator
+    ├── config.yaml           # ~100 lines — configuration
+    └── data/
+        ├── multi_turn_reasoning_chat.parquet           # ~3.2 MB
+        ├── multi_turn_reasoning_chat.jsonl             # ~0.8 MB (aiperf multi_turn)
+        └── multi_turn_reasoning_chat_mooncake.jsonl    # ~253 MB (gitignored)
 ```
 
 ### Dependencies
@@ -636,11 +645,112 @@ The first user message uses the OpenAI-compatible **image_url** format:
 
 ---
 
+## Reasoning Dataset Generator
+
+**File**: `reasoning/generate.py` (~890 lines)
+
+### Architecture
+
+The reasoning generator focuses on deep chain-of-thought conversations. Like the text generator, it uses no external data fetching — all conversations are purely synthetic. However, it targets reasoning-intensive domains with longer responses and more structured argumentation.
+
+```
+reasoning/config.yaml
+    │
+    ▼
+ReasoningConversationGenerator(config, seed=42)
+    │
+    ├── TOPIC_TEMPLATES (8 topics × {openers, followups, responses, fill_values})
+    ├── PROOF_TECHNIQUES (10 formal proof methods)
+    ├── REASONING_CHAINS (8 meta-reasoning starters)
+    ├── MATHEMATICAL_CONCEPTS (8 domain concepts)
+    ├── LOGICAL_PRINCIPLES (8 logical rules)
+    └── COMPLEXITY_RESULTS (8 CS complexity statements)
+    │
+    ▼
+500 conversations → Parquet + multi_turn JSONL + mooncake JSONL
+```
+
+### Topics (8 reasoning domains)
+
+| Topic | Weight | Openers | Followups | Responses | Unique Features |
+|-------|--------|---------|-----------|-----------|-----------------|
+| mathematical_proofs | 20% | 10 | 12 | 4 | Formal proofs, induction, contradiction, epsilon-delta |
+| logic_and_deduction | 15% | 8 | 12 | 3 | Knight/knave puzzles, truth tables, formal logic |
+| algorithmic_analysis | 15% | 8 | 12 | 4 | Complexity proofs, NP-reductions, recurrences |
+| scientific_reasoning | 15% | 8 | 12 | 3 | Experimental design, causal inference, hypothesis testing |
+| philosophical_arguments | 10% | 8 | 11 | 3 | Ethical frameworks, thought experiments, paradoxes |
+| game_theory_and_strategy | 10% | 7 | 11 | 3 | Nash equilibrium, mechanism design, backward induction |
+| causal_and_counterfactual | 10% | 7 | 11 | 3 | Causal DAGs, Simpson's paradox, A/B test analysis |
+| puzzle_solving | 5% | 8 | 11 | 3 | Balance puzzles, river crossing, constraint satisfaction |
+
+### Key Design Differences from Text Generator
+
+1. **Reasoning-focused system prompts**: Each topic's system prompt explicitly instructs the model to show step-by-step reasoning, justify logical steps, and verify conclusions.
+
+2. **Longer responses**: Response word count ranges are higher to accommodate chain-of-thought:
+
+   | Generator | Short | Medium | Long |
+   |-----------|-------|--------|------|
+   | text | 20-80 | 80-250 | 250-600 |
+   | reasoning | 50-150 | 150-400 | 400-900 |
+
+3. **Heavier long-response skew**: The length distribution favors longer responses earlier in the conversation:
+
+   | Turn Position | Short | Medium | Long |
+   |--------------|-------|--------|------|
+   | Early (0-4) | 15% | 50% | 35% |
+   | Middle (5-19) | 10% | 35% | 55% |
+   | Late (20+) | 5% | 25% | 70% |
+
+4. **Challenging follow-ups**: Follow-up templates specifically challenge assumptions, request alternative proof methods, probe edge cases, and ask for generalizations.
+
+5. **Domain-specific content blocks**: Five supplementary content pools enrich responses:
+   - `PROOF_TECHNIQUES`: 10 formal proof methods (induction, contradiction, etc.)
+   - `REASONING_CHAINS`: 8 meta-reasoning starter phrases
+   - `MATHEMATICAL_CONCEPTS`: 8 theorem/concept references
+   - `LOGICAL_PRINCIPLES`: 8 logical rules (modus ponens, De Morgan's, etc.)
+   - `COMPLEXITY_RESULTS`: 8 CS complexity statements
+
+6. **Reasoning-appropriate extensions**: When padding responses to target length, extensions focus on mathematical rigor, edge case analysis, and proof verification rather than generic filler.
+
+### Template Fill System
+
+Simpler than the text generator but with a larger special-placeholder dictionary (~150 entries). All placeholders are resolved from:
+
+1. **Topic-specific fill_values**: Domain vocabulary (prime numbers, algorithms, paradoxes, etc.)
+2. **Special placeholders**: ~150 reasoning-specific expansions covering proof components, logic notation, algorithm pseudocode, game theory payoffs, causal DAG descriptions, and puzzle solutions.
+3. **Content block placeholders**: `{proof_technique}`, `{reasoning_chain}`, `{math_concept}`, `{logical_principle}`, `{complexity_result}`
+4. **Cleanup**: Regex removal of unfilled placeholders
+
+### Message Format
+
+All messages are text-only (no multimodal content):
+
+```json
+[
+  {"role": "system", "content": "You are a rigorous mathematician. When solving problems, show complete step-by-step proofs..."},
+  {"role": "user", "content": "Prove that the square root of 3 is irrational. Walk me through every step of the proof."},
+  {"role": "assistant", "content": "This is a classic result. The standard proof proceeds by contradiction.\n\n**Proof:**\n\nSuppose..."}
+]
+```
+
+### Code Structure Breakdown
+
+| Section | Lines | % |
+|---------|-------|---|
+| Topic templates + content blocks | ~470 | 53% |
+| ReasoningConversationGenerator class | ~200 | 22% |
+| aiperf export functions | ~80 | 9% |
+| CLI / main() | ~80 | 9% |
+| Imports / boilerplate | ~60 | 7% |
+
+---
+
 ## Output Format Specifications
 
 ### Parquet Schema
 
-**Common columns** (all three datasets):
+**Common columns** (all four datasets):
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -680,6 +790,12 @@ The first user message uses the OpenAI-compatible **image_url** format:
 | `source_article` | string | Wikipedia article the image was sourced from |
 | `image_width` | int | Image width in pixels |
 | `image_height` | int | Image height in pixels |
+
+**Reasoning-specific columns**:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `topic` | string | Reasoning domain (e.g., `mathematical_proofs`, `logic_and_deduction`) |
 
 ### aiperf multi_turn JSONL
 
@@ -737,6 +853,7 @@ One JSON object per line, **one line per assistant turn** (not per conversation)
 | text | ~2 MB | ~0.8 MB | ~227 MB |
 | pdf | ~1.6 MB | ~0.5 MB | ~97 MB |
 | image | ~1.6 MB | ~0.5 MB | ~99 MB |
+| reasoning | ~3.2 MB | ~0.8 MB | ~253 MB |
 
 The mooncake format is 100-300x larger because it duplicates the full message history for every turn. These files are gitignored and regenerated on demand.
 
@@ -779,6 +896,7 @@ response_length:   # Word count targets by response bucket
 - **text**: `topics` list with name, weight, system_prompt, description
 - **pdf**: `papers` (count, categories, cache_file) + `conversation_types` list
 - **image**: `images` (count, topics/articles, cache_file, min dimensions) + `conversation_types` list
+- **reasoning**: `topics` list with name, weight, system_prompt, description (same structure as text, reasoning-focused content)
 
 ---
 
