@@ -10,6 +10,211 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 | **image/** | Available | Multi-turn with Wikipedia image references |
 | **pdf/** | Available | Multi-turn with arXiv PDF document context |
 | **reasoning/** | Available | Deep reasoning multi-turn conversations |
+| **agentic/** | Available | Agent task execution with tool-use and success metrics |
+
+## Agentic Task Dataset
+
+Multi-turn conversations where agents execute high-level goals using tool calls, error recovery, and iterative refinement. Designed to benchmark **agent performance** with traceable success metrics that punish partial credit and measure end-to-end task completion.
+
+### Quick Start
+
+```bash
+# Setup (same venv as other datasets)
+source .venv/bin/activate
+
+# Generate all formats (500 tasks, ~2.5M tokens)
+python agentic/generate.py
+
+# Generate only specific format
+python agentic/generate.py --format parquet
+python agentic/generate.py --format aiperf      # multi_turn JSONL only
+python agentic/generate.py --format mooncake    # mooncake_trace JSONL only
+
+# Custom generation
+python agentic/generate.py --num 1000 --seed 123
+```
+
+### Output Formats
+
+The generator produces three output files:
+
+| File | Format | Size | aiperf `--custom-dataset-type` |
+|------|--------|------|-------------------------------|
+| `multi_turn_agentic_task.parquet` | Parquet | ~2.5 MB | N/A (analysis/HuggingFace) |
+| `multi_turn_agentic_task.jsonl` | JSONL | ~0.6 MB | `multi_turn` |
+| `multi_turn_agentic_task_mooncake.jsonl` | JSONL | ~250 MB | `mooncake_trace` |
+
+### Using with aiperf
+
+```bash
+# multi_turn format (lightweight, user messages only)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file agentic/data/multi_turn_agentic_task.jsonl \
+    --custom-dataset-type multi_turn \
+    --streaming --url localhost:8000 --concurrency 10
+
+# mooncake_trace format (full message arrays with tool calls)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file agentic/data/multi_turn_agentic_task_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --streaming --url localhost:8000 --concurrency 10
+```
+
+### Task Types
+
+Conversations span 6 agent task domains:
+
+| Task Type | Weight | Description |
+|-----------|--------|-------------|
+| **data_processing** | 20% | Data transformation, validation, aggregation, filtering |
+| **api_integration** | 20% | API calls, data fetching, error handling, integration |
+| **system_troubleshooting** | 15% | Diagnosis, log analysis, configuration, system repair |
+| **code_generation** | 15% | Code writing, testing, debugging, optimization |
+| **research_synthesis** | 15% | Information gathering, synthesis, report generation |
+| **planning_execution** | 15% | Task decomposition, execution, progress tracking, adaptation |
+
+### Schema (Parquet)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `conversation_id` | string | UUID v4 identifier |
+| `task_type` | string | Agent task domain (e.g., `data_processing`, `api_integration`) |
+| `num_turns` | int | Number of user-agent exchange pairs |
+| `num_messages` | int | Total messages including system prompt |
+| `system_prompt` | string | Agent-specific system instruction |
+| `messages` | string (JSON) | Full message array with tool calls and results |
+| `tool_calls` | string (JSON) | Detailed log of all tool invocations and results |
+| `total_characters` | int | Character count of entire conversation |
+| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
+| `success_metric` | string | Metric used to evaluate task completion |
+| `success_score` | float | Success score (0.0-1.0) with partial credit penalties |
+| `num_tool_calls` | int | Total number of tool invocations |
+| `num_errors` | int | Number of failed tool calls |
+
+### Tool Definitions
+
+Agents have access to 24 tools across 6 categories:
+
+**Data Processing Tools:**
+- `query_database` — SQL queries with timeout handling
+- `transform_data` — Filter, map, aggregate, join operations
+- `validate_schema` — Data validation against schema
+- `export_data` — Export to CSV, JSON, Parquet, SQL
+
+**API Integration Tools:**
+- `call_api` — HTTP requests (GET, POST, PUT, DELETE)
+- `parse_response` — Parse JSON, XML, HTML responses
+- `retry_with_backoff` — Exponential backoff retry logic
+- `log_error` — Error logging with context
+
+**System Troubleshooting Tools:**
+- `check_logs` — Search system/application/error logs
+- `diagnose_issue` — Run diagnostic checks (CPU, memory, disk, network)
+- `apply_fix` — Apply fixes (restart, reconfigure, patch, rollback)
+- `verify_resolution` — Verify issue resolution
+
+**Code Generation Tools:**
+- `write_code` — Generate code in Python, JavaScript, Go, Rust, Java
+- `execute_code` — Run code in sandbox with timeout
+- `run_tests` — Execute test suites (pytest, jest, go test)
+- `debug_code` — Debug with breakpoints and instrumentation
+
+**Research Synthesis Tools:**
+- `search_knowledge_base` — Search documentation/wiki/research
+- `fetch_document` — Retrieve documents in various formats
+- `summarize_content` — Summarize text/documents
+- `generate_report` — Generate structured reports
+
+**Planning & Execution Tools:**
+- `decompose_task` — Break down high-level objectives
+- `execute_step` — Execute individual steps
+- `track_progress` — Monitor progress toward objective
+- `adapt_plan` — Adapt plan based on new information
+
+### Success Metrics
+
+Each task type has a specific success metric with **partial credit penalties**:
+
+| Metric | Calculation | Partial Credit | Penalty |
+|--------|-----------|---|---------|
+| `data_integrity_score` | validated_records / total_records | No | 50% |
+| `integration_completeness_score` | integrated_fields / required_fields | Yes | 30% |
+| `resolution_success_score` | 1.0 if resolved else 0.0 | No | 0% |
+| `test_pass_rate` | passed_tests / total_tests | Yes | 20% |
+| `coverage_completeness_score` | covered_topics / required_topics | Yes | 40% |
+| `objective_completion_score` | completed_steps / total_steps | Yes | 30% |
+
+**Partial credit punishment:** Tasks with incomplete execution receive reduced scores. For example, a data processing task that validates 95% of records gets 0.95 * base_score, not a binary pass/fail.
+
+### Default Dataset Stats
+
+- **500 conversations**, **~2.5M estimated tokens**
+- Turn range: **2-15**, mean: **~7**
+- **6 task types** with balanced distribution
+- **24 tools** with realistic error injection (~15% failure rate)
+- **Tool call distribution:** 0 calls (10%), 1 call (40%), 2 calls (35%), 3+ calls (15%)
+
+### Loading the Dataset
+
+```python
+import pandas as pd
+import json
+
+df = pd.read_parquet("agentic/data/multi_turn_agentic_task.parquet")
+
+# Access a task conversation
+row = df.iloc[0]
+messages = json.loads(row["messages"])
+tool_calls = json.loads(row["tool_calls"])
+
+print(f"Task: {row['task_type']}")
+print(f"Success Score: {row['success_score']:.2f}")
+print(f"Tool Calls: {row['num_tool_calls']}, Errors: {row['num_errors']}")
+
+# Analyze tool usage
+for tool_call in tool_calls:
+    print(f"  {tool_call['tool']}: {tool_call['result']['status']}")
+
+# Analyze context growth
+lengths = json.loads(row["cumulative_char_lengths"])
+print(f"Context growth: {lengths[0]:,} -> {lengths[-1]:,} chars over {row['num_turns']} turns")
+```
+
+### Benchmarking Agent Performance
+
+Each conversation simulates real agent execution: the agent receives a high-level goal, makes tool calls, handles errors, and iteratively refines its approach. To benchmark:
+
+```python
+# Simulate agent execution
+messages = json.loads(row["messages"])
+tool_calls = json.loads(row["tool_calls"])
+
+# Measure:
+# - Tool call accuracy (% successful calls)
+# - Error recovery (% of errors handled correctly)
+# - Goal completion (success_score metric)
+# - Token efficiency (tokens_used / estimated_tokens)
+# - Iteration efficiency (num_turns / optimal_turns)
+
+tool_success_rate = 1 - (row['num_errors'] / row['num_tool_calls']) if row['num_tool_calls'] > 0 else 1.0
+print(f"Tool Success Rate: {tool_success_rate:.2%}")
+print(f"Task Success Score: {row['success_score']:.2%}")
+```
+
+### Configuration
+
+Edit `agentic/config.yaml` to customize:
+- Number of conversations and distribution across turn-count buckets
+- Task type weights and system prompts
+- Tool definitions and error injection rates
+- Response length distributions by conversation phase
+- Success metric thresholds and partial credit penalties
+- Random seed for reproducibility
 
 ## Text Dataset
 

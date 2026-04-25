@@ -1,6 +1,6 @@
 # Architecture
 
-Comprehensive technical reference for the **multi-turn-chat-dataset** repository. This document covers the system design, data flows, code structure, and output format specifications for all four dataset generators.
+Comprehensive technical reference for the **multi-turn-chat-dataset** repository. This document covers the system design, data flows, code structure, and output format specifications for all five dataset generators.
 
 ## Table of Contents
 
@@ -12,6 +12,7 @@ Comprehensive technical reference for the **multi-turn-chat-dataset** repository
 - [PDF Dataset Generator](#pdf-dataset-generator)
 - [Image Dataset Generator](#image-dataset-generator)
 - [Reasoning Dataset Generator](#reasoning-dataset-generator)
+- [Agentic Task Dataset Generator](#agentic-task-dataset-generator)
 - [Output Format Specifications](#output-format-specifications)
 - [Configuration System](#configuration-system)
 - [Extensibility Guide](#extensibility-guide)
@@ -747,6 +748,63 @@ All messages are text-only (no multimodal content):
 | CLI / main() | ~80 | 6% |
 | Special placeholder dictionary | ~120 | 10% |
 | Imports / boilerplate | ~42 | 4% |
+
+---
+
+## Agentic Task Dataset Generator
+
+The agentic task generator (`agentic/generate.py`, ~1,100 lines) creates synthetic multi-turn conversations where agents execute high-level goals using tool calls, error recovery, and iterative refinement.
+
+### Design Overview
+
+**Purpose:** Benchmark agent performance with traceable success metrics that punish partial credit and measure end-to-end task completion.
+
+**Key Differences from Other Datasets:**
+- **Tool-use focus:** Each conversation includes realistic tool calls with success/failure outcomes
+- **Error injection:** ~15% of tool calls fail, requiring agents to handle errors and retry
+- **Success metrics:** Task-specific metrics (e.g., `data_integrity_score`, `test_pass_rate`) with partial credit penalties
+- **Shorter turns:** 2-15 turns (vs. 1-50 for text) — focused on goal completion, not context growth
+
+### Architecture
+
+The generator follows the same template-based approach as other datasets but adds tool-use simulation:
+
+- **TASK_TEMPLATES:** 6 task types with openers, follow-ups, tool sequences, and fill values
+- **generate_conversation():** Orchestrates conversation generation with tool calls
+- **generate_tool_call():** Creates realistic tool invocations with parameters
+- **generate_tool_result():** Simulates tool execution (success or failure)
+- **calculate_success_score():** Computes metric-specific scores with partial credit penalties
+
+### Tool System
+
+24 tools across 6 categories, each with parameters, return types, and error modes. Tools are organized by domain:
+
+1. **Data Processing:** query_database, transform_data, validate_schema, export_data
+2. **API Integration:** call_api, parse_response, retry_with_backoff, log_error
+3. **System Troubleshooting:** check_logs, diagnose_issue, apply_fix, verify_resolution
+4. **Code Generation:** write_code, execute_code, run_tests, debug_code
+5. **Research Synthesis:** search_knowledge_base, fetch_document, summarize_content, generate_report
+6. **Planning & Execution:** decompose_task, execute_step, track_progress, adapt_plan
+
+### Success Metrics
+
+Each task type has a metric with configurable partial credit penalties:
+
+- `data_integrity_score`: validated_records / total_records (no partial credit)
+- `integration_completeness_score`: integrated_fields / required_fields (partial credit allowed)
+- `resolution_success_score`: 1.0 if resolved else 0.0 (binary)
+- `test_pass_rate`: passed_tests / total_tests (partial credit allowed)
+- `coverage_completeness_score`: covered_topics / required_topics (partial credit allowed)
+- `objective_completion_score`: completed_steps / total_steps (partial credit allowed)
+
+### Parquet Schema
+
+**Agentic-specific columns:**
+- `tool_calls` (JSON): Detailed log of all tool invocations and results
+- `success_metric` (string): Metric used to evaluate task completion
+- `success_score` (float): Success score (0.0-1.0) with partial credit penalties
+- `num_tool_calls` (int): Total number of tool invocations
+- `num_errors` (int): Number of failed tool calls
 
 ---
 

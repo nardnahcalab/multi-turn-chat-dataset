@@ -1,0 +1,388 @@
+dataset:
+  name: "multi-turn-agentic-task"
+  version: "1.0.0"
+  description: "Synthetic multi-turn agentic task dataset for benchmarking agent performance with tool-use and success metrics"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_agentic_task.parquet"
+  seed: 42
+
+turns:
+  min: 2
+  max: 15
+  # Distribution buckets: how many tasks per turn-count range
+  # Agentic tasks typically have fewer turns than reasoning (focused on goal completion)
+  distribution:
+    short:    # 2-4 turns (simple tasks with 1-2 tool calls)
+      count: 150
+      min_turns: 2
+      max_turns: 4
+    medium:   # 5-8 turns (multi-step tasks with 2-4 tool calls)
+      count: 200
+      min_turns: 5
+      max_turns: 8
+    long:     # 9-15 turns (complex tasks with 4+ tool calls and error recovery)
+      count: 150
+      min_turns: 9
+      max_turns: 15
+
+task_types:
+  - name: "data_processing"
+    weight: 0.20
+    system_prompt: "You are a data processing agent. Your goal is to transform, validate, and analyze data using available tools. Be methodical, verify results, and handle errors gracefully."
+    description: "Data transformation, validation, aggregation, filtering"
+    tools: ["query_database", "transform_data", "validate_schema", "export_data"]
+    success_metric: "data_integrity_score"
+
+  - name: "api_integration"
+    weight: 0.20
+    system_prompt: "You are an API integration agent. Your goal is to fetch data from external APIs, transform it, and integrate it into your system. Handle rate limits, errors, and data mismatches."
+    description: "API calls, data fetching, error handling, integration"
+    tools: ["call_api", "parse_response", "retry_with_backoff", "log_error"]
+    success_metric: "integration_completeness_score"
+
+  - name: "system_troubleshooting"
+    weight: 0.15
+    system_prompt: "You are a system troubleshooting agent. Your goal is to diagnose and resolve system issues. Use diagnostic tools, analyze logs, and implement fixes."
+    description: "Diagnosis, log analysis, configuration, system repair"
+    tools: ["check_logs", "diagnose_issue", "apply_fix", "verify_resolution"]
+    success_metric: "resolution_success_score"
+
+  - name: "code_generation"
+    weight: 0.15
+    system_prompt: "You are a code generation agent. Your goal is to write, test, and refine code that meets specifications. Use code execution tools, testing frameworks, and debugging."
+    description: "Code writing, testing, debugging, optimization"
+    tools: ["write_code", "execute_code", "run_tests", "debug_code"]
+    success_metric: "test_pass_rate"
+
+  - name: "research_synthesis"
+    weight: 0.15
+    system_prompt: "You are a research synthesis agent. Your goal is to gather information from multiple sources, synthesize findings, and produce comprehensive reports."
+    description: "Information gathering, synthesis, report generation"
+    tools: ["search_knowledge_base", "fetch_document", "summarize_content", "generate_report"]
+    success_metric: "coverage_completeness_score"
+
+  - name: "planning_execution"
+    weight: 0.15
+    system_prompt: "You are a planning and execution agent. Your goal is to break down high-level objectives into actionable steps, execute them, and track progress."
+    description: "Task decomposition, execution, progress tracking, adaptation"
+    tools: ["decompose_task", "execute_step", "track_progress", "adapt_plan"]
+    success_metric: "objective_completion_score"
+
+# Tool definitions: what tools are available and their signatures
+tools:
+  query_database:
+    description: "Query a database with SQL or structured query language"
+    parameters:
+      query: "string (SQL query)"
+      timeout: "integer (seconds, default 30)"
+    returns: "list of records or error"
+    error_modes: ["timeout", "syntax_error", "connection_error", "no_results"]
+
+  transform_data:
+    description: "Transform data using operations like filtering, mapping, aggregation"
+    parameters:
+      input_data: "list or table"
+      operation: "string (filter, map, aggregate, join)"
+      config: "dict with operation-specific parameters"
+    returns: "transformed data or error"
+    error_modes: ["invalid_operation", "type_mismatch", "missing_field"]
+
+  validate_schema:
+    description: "Validate data against a schema definition"
+    parameters:
+      data: "list or table"
+      schema: "dict defining expected structure"
+      strict: "boolean (default true)"
+    returns: "validation result with errors list"
+    error_modes: ["schema_mismatch", "missing_required_field", "type_error"]
+
+  export_data:
+    description: "Export data to various formats (CSV, JSON, Parquet, etc.)"
+    parameters:
+      data: "list or table"
+      format: "string (csv, json, parquet, sql)"
+      destination: "string (file path or connection string)"
+    returns: "success status and file info"
+    error_modes: ["unsupported_format", "write_error", "permission_denied"]
+
+  call_api:
+    description: "Make HTTP request to an external API"
+    parameters:
+      url: "string (API endpoint)"
+      method: "string (GET, POST, PUT, DELETE)"
+      headers: "dict (optional)"
+      body: "dict or string (optional)"
+      timeout: "integer (seconds, default 30)"
+    returns: "response status, headers, body"
+    error_modes: ["timeout", "connection_error", "http_error", "rate_limit"]
+
+  parse_response:
+    description: "Parse API response (JSON, XML, etc.) and extract fields"
+    parameters:
+      response: "string (raw response)"
+      format: "string (json, xml, html)"
+      schema: "dict (optional, for validation)"
+    returns: "parsed data or error"
+    error_modes: ["parse_error", "invalid_format", "schema_mismatch"]
+
+  retry_with_backoff:
+    description: "Retry a failed operation with exponential backoff"
+    parameters:
+      operation: "callable (function to retry)"
+      max_retries: "integer (default 3)"
+      initial_delay: "float (seconds, default 1.0)"
+      backoff_factor: "float (default 2.0)"
+    returns: "operation result or final error"
+    error_modes: ["max_retries_exceeded", "operation_error"]
+
+  log_error:
+    description: "Log an error with context for debugging"
+    parameters:
+      error_message: "string"
+      error_type: "string (optional)"
+      context: "dict (optional, additional context)"
+      severity: "string (debug, info, warning, error, critical)"
+    returns: "log_id for reference"
+    error_modes: ["logging_failure"]
+
+  check_logs:
+    description: "Check system logs for errors or specific patterns"
+    parameters:
+      log_type: "string (system, application, error, access)"
+      pattern: "string (regex pattern to search)"
+      time_range: "dict (start, end timestamps)"
+      limit: "integer (max results, default 100)"
+    returns: "list of matching log entries"
+    error_modes: ["log_not_found", "access_denied", "invalid_pattern"]
+
+  diagnose_issue:
+    description: "Run diagnostic checks to identify system issues"
+    parameters:
+      system_component: "string (cpu, memory, disk, network, database)"
+      checks: "list of check types (optional)"
+    returns: "diagnostic report with findings"
+    error_modes: ["component_not_found", "diagnostic_failed"]
+
+  apply_fix:
+    description: "Apply a fix to resolve a diagnosed issue"
+    parameters:
+      issue_id: "string (identifier of the issue)"
+      fix_type: "string (restart, reconfigure, patch, rollback)"
+      config: "dict (fix-specific configuration)"
+    returns: "fix result and status"
+    error_modes: ["fix_failed", "permission_denied", "invalid_fix"]
+
+  verify_resolution:
+    description: "Verify that an issue has been resolved"
+    parameters:
+      issue_id: "string"
+      verification_method: "string (test, check, monitor)"
+      duration: "integer (seconds to monitor, default 60)"
+    returns: "verification result (resolved, unresolved, partial)"
+    error_modes: ["verification_failed"]
+
+  write_code:
+    description: "Generate code based on specifications"
+    parameters:
+      language: "string (python, javascript, go, rust, java)"
+      specification: "string (detailed requirements)"
+      context: "string (optional, existing code context)"
+    returns: "generated code"
+    error_modes: ["invalid_spec", "unsupported_language"]
+
+  execute_code:
+    description: "Execute code in a sandbox environment"
+    parameters:
+      code: "string (code to execute)"
+      language: "string"
+      timeout: "integer (seconds, default 30)"
+      input: "string or dict (optional, stdin)"
+    returns: "stdout, stderr, exit_code"
+    error_modes: ["timeout", "runtime_error", "sandbox_error"]
+
+  run_tests:
+    description: "Run test suite and report results"
+    parameters:
+      test_framework: "string (pytest, jest, go test, etc.)"
+      test_path: "string (path to tests)"
+      filter: "string (optional, test filter pattern)"
+    returns: "test results with pass/fail counts"
+    error_modes: ["no_tests_found", "framework_error", "test_failure"]
+
+  debug_code:
+    description: "Debug code by running with debugger or adding instrumentation"
+    parameters:
+      code: "string"
+      language: "string"
+      breakpoints: "list of line numbers (optional)"
+      input: "string or dict (optional)"
+    returns: "debug trace and variable states"
+    error_modes: ["debug_error", "invalid_breakpoint"]
+
+  search_knowledge_base:
+    description: "Search a knowledge base or documentation"
+    parameters:
+      query: "string (search query)"
+      knowledge_base: "string (which KB to search)"
+      limit: "integer (max results, default 10)"
+    returns: "list of matching documents with relevance scores"
+    error_modes: ["kb_not_found", "search_error"]
+
+  fetch_document:
+    description: "Fetch and retrieve a specific document"
+    parameters:
+      document_id: "string"
+      format: "string (text, html, pdf, markdown)"
+    returns: "document content"
+    error_modes: ["document_not_found", "access_denied", "format_error"]
+
+  summarize_content:
+    description: "Summarize content (text, document, etc.)"
+    parameters:
+      content: "string (content to summarize)"
+      length: "string (short, medium, long)"
+      focus: "string (optional, what to focus on)"
+    returns: "summary text"
+    error_modes: ["summarization_error"]
+
+  generate_report:
+    description: "Generate a structured report from data and findings"
+    parameters:
+      title: "string"
+      sections: "list of section definitions"
+      data: "dict (data to include in report)"
+      format: "string (markdown, html, pdf)"
+    returns: "generated report"
+    error_modes: ["report_generation_error"]
+
+  decompose_task:
+    description: "Break down a high-level task into subtasks"
+    parameters:
+      objective: "string (high-level goal)"
+      constraints: "list of constraints (optional)"
+      context: "dict (optional, additional context)"
+    returns: "list of subtasks with dependencies"
+    error_modes: ["decomposition_error"]
+
+  execute_step:
+    description: "Execute a single step/subtask"
+    parameters:
+      step_id: "string"
+      step_definition: "dict (what to do)"
+      context: "dict (current state)"
+    returns: "step result and new state"
+    error_modes: ["execution_error", "step_failed"]
+
+  track_progress:
+    description: "Track progress toward objective"
+    parameters:
+      objective_id: "string"
+      completed_steps: "list of step IDs"
+      current_state: "dict"
+    returns: "progress percentage and status"
+    error_modes: ["tracking_error"]
+
+  adapt_plan:
+    description: "Adapt the plan based on new information or failures"
+    parameters:
+      original_plan: "list of steps"
+      new_information: "string (what changed)"
+      failures: "list of failed steps (optional)"
+    returns: "adapted plan"
+    error_modes: ["adaptation_error"]
+
+# Success metrics configuration
+success_metrics:
+  data_integrity_score:
+    description: "Percentage of data that passes validation"
+    calculation: "validated_records / total_records"
+    partial_credit: false
+    penalty_for_incomplete: 0.5
+
+  integration_completeness_score:
+    description: "Percentage of required data successfully integrated"
+    calculation: "integrated_fields / required_fields"
+    partial_credit: true
+    penalty_for_incomplete: 0.3
+
+  resolution_success_score:
+    description: "Whether the issue was fully resolved (binary)"
+    calculation: "1.0 if resolved else 0.0"
+    partial_credit: false
+    penalty_for_incomplete: 0.0
+
+  test_pass_rate:
+    description: "Percentage of tests that pass"
+    calculation: "passed_tests / total_tests"
+    partial_credit: true
+    penalty_for_incomplete: 0.2
+
+  coverage_completeness_score:
+    description: "Percentage of required topics covered in synthesis"
+    calculation: "covered_topics / required_topics"
+    partial_credit: true
+    penalty_for_incomplete: 0.4
+
+  objective_completion_score:
+    description: "Percentage of objective completed"
+    calculation: "completed_steps / total_steps"
+    partial_credit: true
+    penalty_for_incomplete: 0.3
+
+# Response length configuration
+response_length:
+  short:
+    min_words: 30
+    max_words: 100
+  medium:
+    min_words: 100
+    max_words: 300
+  long:
+    min_words: 300
+    max_words: 800
+  # Tool-use responses tend to be more structured
+  length_distribution_by_turn:
+    early:   # turns 1-3 (initial tool calls)
+      short: 0.4
+      medium: 0.4
+      long: 0.2
+    middle:  # turns 4-8 (iterative refinement)
+      short: 0.2
+      medium: 0.5
+      long: 0.3
+    late:    # turns 9+ (final verification and reporting)
+      short: 0.1
+      medium: 0.4
+      long: 0.5
+
+# Tool call configuration
+tool_calls:
+  # Average number of tool calls per turn
+  min_per_turn: 0
+  max_per_turn: 3
+  distribution:
+    zero_calls: 0.1      # Some turns are pure reasoning/planning
+    one_call: 0.4        # Most turns have 1 tool call
+    two_calls: 0.35      # Some turns have 2 calls (e.g., fetch then transform)
+    three_plus: 0.15     # Complex turns may have 3+ calls
+
+# Error injection configuration
+error_injection:
+  enabled: true
+  # Probability of tool call failure
+  failure_rate: 0.15
+  # Types of errors to inject
+  error_types:
+    - "timeout"
+    - "connection_error"
+    - "invalid_response"
+    - "permission_denied"
+    - "rate_limit"
+  # Probability of each error type
+  error_distribution:
+    timeout: 0.3
+    connection_error: 0.2
+    invalid_response: 0.2
+    permission_denied: 0.15
+    rate_limit: 0.15
