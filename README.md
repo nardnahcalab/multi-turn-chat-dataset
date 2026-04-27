@@ -12,6 +12,114 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 | **reasoning/** | Available | Deep reasoning multi-turn conversations |
 | **agentic/** | Available | Agent task execution with tool-use and success metrics |
 
+## Examples and Usage
+
+Get started quickly with practical examples. All examples are in the `examples/` directory.
+
+### Run Examples
+
+```bash
+# Setup
+source .venv/bin/activate
+
+# Generate datasets (if needed)
+python text/generate.py
+python agentic/generate.py
+
+# Run examples
+python examples/01_load_and_inspect.py text
+python examples/02_analyze_conversations.py text
+python examples/03_prepare_for_benchmarking.py --dataset text
+python examples/04_agentic_analysis.py
+```
+
+### Example 1: Load and Inspect Datasets
+
+```python
+import pandas as pd
+import json
+
+# Load dataset
+df = pd.read_parquet("text/data/multi_turn_text_chat.parquet")
+
+# Basic info
+print(f"Conversations: {len(df)}")
+print(f"Total tokens: {df['estimated_tokens'].sum():,}")
+
+# Access a conversation
+row = df.iloc[0]
+messages = json.loads(row["messages"])
+
+# Print messages
+for msg in messages:
+    print(f"[{msg['role']}] {msg['content'][:100]}...")
+```
+
+**See**: `examples/01_load_and_inspect.py` for complete example
+
+### Example 2: Analyze Context Growth
+
+```python
+import json
+
+row = df.iloc[0]
+cumulative_lengths = json.loads(row["cumulative_char_lengths"])
+
+# Track context growth
+for i, char_count in enumerate(cumulative_lengths):
+    token_count = char_count // 4
+    print(f"Turn {i+1}: {char_count:,} chars (~{token_count:,} tokens)")
+```
+
+**See**: `examples/02_analyze_conversations.py` for complete example
+
+### Example 3: Prepare for Benchmarking
+
+```bash
+# Create a subset for testing
+python examples/03_prepare_for_benchmarking.py \
+    --dataset text \
+    --format subset \
+    --num-samples 100
+
+# Filter by turn count
+python examples/03_prepare_for_benchmarking.py \
+    --dataset text \
+    --format filtered \
+    --min-turns 5 \
+    --max-turns 15
+
+# Estimate benchmark time
+python examples/03_prepare_for_benchmarking.py \
+    --dataset text \
+    --tokens-per-sec 100
+```
+
+**See**: `examples/03_prepare_for_benchmarking.py` for complete example
+
+### Example 4: Analyze Agentic Tasks
+
+```bash
+# Full analysis
+python examples/04_agentic_analysis.py
+
+# Compare conversations
+python examples/04_agentic_analysis.py --compare 0 1
+
+# Export report
+python examples/04_agentic_analysis.py --report
+```
+
+**See**: `examples/04_agentic_analysis.py` for complete example
+
+### More Documentation
+
+For detailed tutorials and advanced examples, see:
+- **[EXAMPLES.md](EXAMPLES.md)** - Comprehensive tutorials with code walkthroughs
+- **[API_REFERENCE.md](API_REFERENCE.md)** - Complete API and schema reference
+- **[FAQ.md](FAQ.md)** - Common questions and troubleshooting
+- **[examples/README.md](examples/README.md)** - Quick reference for all examples
+
 ## Agentic Task Dataset
 
 Multi-turn conversations where agents execute high-level goals using tool calls, error recovery, and iterative refinement. Designed to benchmark **agent performance** with traceable success metrics that punish partial credit and measure end-to-end task completion.
