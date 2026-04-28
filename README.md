@@ -11,6 +11,8 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 | **pdf/** | Available | Multi-turn with arXiv PDF document context |
 | **reasoning/** | Available | Deep reasoning multi-turn conversations |
 | **agentic/** | Available | Agent task execution with tool-use and success metrics |
+| **random/** | Available | Random/gibberish text multi-turn conversations |
+| **repeat/** | Available | Repetitive text multi-turn conversations |
 
 ## Examples and Usage
 
@@ -795,6 +797,226 @@ Edit `reasoning/config.yaml` to customize:
 - Response length distributions — skewed longer to accommodate chain-of-thought
 - Random seed for reproducibility
 
+## Random Dataset
+
+Multi-turn conversations with randomly generated text — random words, character sequences, gibberish sentences, mixed content, and lorem ipsum. Designed to benchmark inference with **unpredictable, non-cacheable content** where prefix caching provides minimal benefit, serving as a baseline comparison against structured datasets.
+
+### Quick Start
+
+```bash
+# Setup (same venv as text dataset)
+source .venv/bin/activate
+
+# Generate all formats (500 conversations, ~5M tokens)
+python random/generate.py
+
+# Generate only specific format
+python random/generate.py --format parquet
+python random/generate.py --format aiperf
+python random/generate.py --format mooncake
+
+# Custom generation
+python random/generate.py --num 1000 --seed 123
+```
+
+### How It Works
+
+1. **Generates** multi-turn conversations where user messages are randomly constructed text
+2. System prompts instruct the model to respond to random content — analyzing patterns, interpreting gibberish, engaging creatively
+3. Each topic type uses a different randomization strategy (words, chars, sentences, mixed, lorem)
+4. Content is intentionally unpredictable to minimize prefix cache reuse
+
+### Topics
+
+Conversations span 5 random content types with configurable weights:
+
+| Topic | Weight | Description |
+|-------|--------|-------------|
+| random_words | 25% | Random words from a ~500-word vocabulary list |
+| random_sentences | 25% | Grammatically structured but semantically random sentences |
+| random_chars | 20% | Random alphanumeric character sequences |
+| random_mixed | 15% | Mixed words, numbers, and symbols |
+| random_lorem | 15% | Lorem ipsum style pseudo-Latin placeholder text |
+
+### Output Formats
+
+| File | Format | Size | aiperf `--custom-dataset-type` |
+|------|--------|------|-------------------------------|
+| `multi_turn_random_chat.parquet` | Parquet | ~7 MB | N/A |
+| `multi_turn_random_chat.jsonl` | JSONL | ~1.7 MB | `multi_turn` |
+| `multi_turn_random_chat_mooncake.jsonl` | JSONL | ~290 MB | `mooncake_trace` |
+
+### Using with aiperf
+
+```bash
+# multi_turn format (lightweight, random user messages only)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file random/data/multi_turn_random_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --streaming --url localhost:8000 --concurrency 10
+
+# mooncake_trace format (full message arrays)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file random/data/multi_turn_random_chat_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --streaming --url localhost:8000 --concurrency 10
+```
+
+### Schema (Parquet)
+
+Uses the same schema as the text dataset:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `conversation_id` | string | UUID v4 identifier |
+| `topic` | string | Random content type (e.g., `random_words`, `random_chars`) |
+| `num_turns` | int | Number of user-assistant exchange pairs |
+| `num_messages` | int | Total messages including system prompt |
+| `system_prompt` | string | System-level instruction |
+| `messages` | string (JSON) | Full message array |
+| `total_characters` | int | Character count of entire conversation |
+| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
+
+### Turn Distribution
+
+| Bucket | Turns | Count | Use Case |
+|--------|-------|-------|----------|
+| Short | 1-5 | 100 | Cache cold start, minimal reuse |
+| Medium | 6-15 | 150 | Moderate-length random conversations |
+| Long | 16-30 | 150 | Long unpredictable conversations |
+| Very Long | 31-50 | 100 | Stress-test with extended random content |
+
+### Default Dataset Stats
+
+- **500 conversations**, **~5M estimated tokens**
+- Turn range: **1-50**, mean: **~19**
+- Max single conversation: **~33K tokens**
+- File size: **~7 MB** (Parquet)
+- **5 random content types** with configurable weights
+
+### Configuration
+
+Edit `random/config.yaml` to customize:
+- Number of conversations and distribution across turn-count buckets
+- Topic weights and system prompts
+- Response length distributions (short/medium/long) by conversation phase
+- Random seed for reproducibility
+
+## Repeat Dataset
+
+Multi-turn conversations with highly repetitive content — single words, phrases, counting sequences, letter patterns, and full sentences repeated many times. Designed to benchmark inference with **maximally compressible, highly cacheable content**, testing tokenizer efficiency and KV-cache behavior with near-identical token sequences.
+
+### Quick Start
+
+```bash
+# Setup (same venv as text dataset)
+source .venv/bin/activate
+
+# Generate all formats (500 conversations, ~4.8M tokens)
+python repeat/generate.py
+
+# Generate only specific format
+python repeat/generate.py --format parquet
+python repeat/generate.py --format aiperf
+python repeat/generate.py --format mooncake
+
+# Custom generation
+python repeat/generate.py --num 1000 --seed 123
+```
+
+### How It Works
+
+1. **Generates** multi-turn conversations where user messages consist of repeated words/phrases/patterns
+2. Within each conversation, the **same base word/phrase/pattern** is used across all turns
+3. The **number of repetitions varies per turn** — creating growing context with predictable content
+4. Assistant responses acknowledge the repetitive content and respond naturally
+
+### Topics
+
+Conversations span 5 repetition types with configurable weights:
+
+| Topic | Weight | Description |
+|-------|--------|-------------|
+| single_word | 25% | A single word repeated N times (e.g., "hello hello hello...") |
+| sentence_repeat | 20% | A full sentence repeated N times |
+| counting_repeat | 20% | Counting sequences repeated (e.g., "1 2 3 1 2 3...") |
+| phrase_repeat | 20% | A short phrase repeated N times (e.g., "the cat sat the cat sat...") |
+| letter_repeat | 15% | Letters or character patterns repeated (e.g., "aaabbbccc...") |
+
+### Output Formats
+
+| File | Format | Size | aiperf `--custom-dataset-type` |
+|------|--------|------|-------------------------------|
+| `multi_turn_repeat_chat.parquet` | Parquet | ~2.2 MB | N/A |
+| `multi_turn_repeat_chat.jsonl` | JSONL | ~3 MB | `multi_turn` |
+| `multi_turn_repeat_chat_mooncake.jsonl` | JSONL | ~269 MB | `mooncake_trace` |
+
+### Using with aiperf
+
+```bash
+# multi_turn format (lightweight, repetitive user messages only)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file repeat/data/multi_turn_repeat_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --streaming --url localhost:8000 --concurrency 10
+
+# mooncake_trace format (full message arrays)
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --input-file repeat/data/multi_turn_repeat_chat_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --streaming --url localhost:8000 --concurrency 10
+```
+
+### Schema (Parquet)
+
+Uses the same schema as the text dataset:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `conversation_id` | string | UUID v4 identifier |
+| `topic` | string | Repetition type (e.g., `single_word`, `phrase_repeat`) |
+| `num_turns` | int | Number of user-assistant exchange pairs |
+| `num_messages` | int | Total messages including system prompt |
+| `system_prompt` | string | System-level instruction |
+| `messages` | string (JSON) | Full message array |
+| `total_characters` | int | Character count of entire conversation |
+| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
+
+### Turn Distribution
+
+| Bucket | Turns | Count | Use Case |
+|--------|-------|-------|----------|
+| Short | 1-5 | 100 | Cache cold start with repetitive content |
+| Medium | 6-15 | 150 | Moderate prefix sharing with identical patterns |
+| Long | 16-30 | 150 | Significant cache benefit from repetition |
+| Very Long | 31-50 | 100 | Stress-test with maximally repetitive context |
+
+### Default Dataset Stats
+
+- **500 conversations**, **~4.8M estimated tokens**
+- Turn range: **1-50**, mean: **~19**
+- Max single conversation: **~33K tokens**
+- File size: **~2.2 MB** (Parquet)
+- **5 repetition types** with configurable weights
+
+### Configuration
+
+Edit `repeat/config.yaml` to customize:
+- Number of conversations and distribution across turn-count buckets
+- Topic weights and system prompts
+- Response length distributions (short/medium/long) by conversation phase
+- Random seed for reproducibility
+
 ## Project Structure
 
 ```
@@ -832,6 +1054,20 @@ multi-turn-chat-dataset/
 │       ├── multi_turn_reasoning_chat.parquet           # Full dataset (Parquet)
 │       ├── multi_turn_reasoning_chat.jsonl             # aiperf multi_turn format
 │       └── multi_turn_reasoning_chat_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
+├── random/
+│   ├── generate.py          # Generation script (random/gibberish text)
+│   ├── config.yaml          # Configuration
+│   └── data/
+│       ├── multi_turn_random_chat.parquet              # Full dataset (Parquet)
+│       ├── multi_turn_random_chat.jsonl                # aiperf multi_turn format
+│       └── multi_turn_random_chat_mooncake.jsonl       # aiperf mooncake_trace (generated, not in git)
+├── repeat/
+│   ├── generate.py          # Generation script (repetitive text)
+│   ├── config.yaml          # Configuration
+│   └── data/
+│       ├── multi_turn_repeat_chat.parquet              # Full dataset (Parquet)
+│       ├── multi_turn_repeat_chat.jsonl                # aiperf multi_turn format
+│       └── multi_turn_repeat_chat_mooncake.jsonl       # aiperf mooncake_trace (generated, not in git)
 └── .gitignore
 ```
 

@@ -1,0 +1,82 @@
+dataset:
+  name: "multi-turn-repeat-chat"
+  version: "1.0.0"
+  description: "Synthetic multi-turn repetitive-text conversations for benchmarking inference with highly compressible content"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_repeat_chat.parquet"
+  seed: 42
+
+turns:
+  min: 1
+  max: 50
+  # Distribution buckets: how many conversations per turn-count range
+  distribution:
+    short:    # 1-5 turns
+      count: 100
+      min_turns: 1
+      max_turns: 5
+    medium:   # 6-15 turns
+      count: 150
+      min_turns: 6
+      max_turns: 15
+    long:     # 16-30 turns
+      count: 150
+      min_turns: 16
+      max_turns: 30
+    very_long: # 31-50 turns
+      count: 100
+      min_turns: 31
+      max_turns: 50
+
+topics:
+  - name: "single_word"
+    weight: 0.25
+    system_prompt: "You are an assistant. The user will send messages consisting of a single word repeated many times. Respond naturally."
+    description: "A single word repeated N times (e.g. 'hello hello hello hello...')"
+
+  - name: "phrase_repeat"
+    weight: 0.20
+    system_prompt: "You are an assistant. The user will send messages consisting of a short phrase repeated many times. Respond naturally."
+    description: "A short phrase repeated N times (e.g. 'the cat sat the cat sat the cat sat...')"
+
+  - name: "counting_repeat"
+    weight: 0.20
+    system_prompt: "You are an assistant. The user will send messages with counting patterns. Respond naturally."
+    description: "Counting sequences repeated (e.g. '1 2 3 1 2 3 1 2 3...')"
+
+  - name: "letter_repeat"
+    weight: 0.15
+    system_prompt: "You are an assistant. The user will send messages consisting of repeated letters or characters. Respond naturally."
+    description: "Single letters or short char sequences repeated (e.g. 'aaabbbcccaaabbbccc...')"
+
+  - name: "sentence_repeat"
+    weight: 0.20
+    system_prompt: "You are an assistant. The user will send messages consisting of the same sentence repeated many times. Respond naturally."
+    description: "A full sentence repeated N times"
+
+response_length:
+  # Token count ranges for assistant responses (approximate word count)
+  short:
+    min_words: 20
+    max_words: 80
+  medium:
+    min_words: 80
+    max_words: 250
+  long:
+    min_words: 250
+    max_words: 600
+  # Longer conversations should have more long responses to grow context
+  length_distribution_by_turn:
+    early:   # turns 1-5
+      short: 0.3
+      medium: 0.5
+      long: 0.2
+    middle:  # turns 6-20
+      short: 0.2
+      medium: 0.4
+      long: 0.4
+    late:    # turns 21+
+      short: 0.1
+      medium: 0.3
+      long: 0.6

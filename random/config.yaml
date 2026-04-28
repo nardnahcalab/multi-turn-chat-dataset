@@ -1,0 +1,82 @@
+dataset:
+  name: "multi-turn-random-chat"
+  version: "1.0.0"
+  description: "Synthetic multi-turn random-text conversations for benchmarking inference"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_random_chat.parquet"
+  seed: 42
+
+turns:
+  min: 1
+  max: 50
+  # Distribution buckets: how many conversations per turn-count range
+  distribution:
+    short:    # 1-5 turns
+      count: 100
+      min_turns: 1
+      max_turns: 5
+    medium:   # 6-15 turns
+      count: 150
+      min_turns: 6
+      max_turns: 15
+    long:     # 16-30 turns
+      count: 150
+      min_turns: 16
+      max_turns: 30
+    very_long: # 31-50 turns
+      count: 100
+      min_turns: 31
+      max_turns: 50
+
+topics:
+  - name: "random_words"
+    weight: 0.25
+    system_prompt: "You are an assistant responding to random word sequences. Respond with relevant associations and interpretations."
+    description: "Random words from a vocabulary list"
+
+  - name: "random_chars"
+    weight: 0.20
+    system_prompt: "You are an assistant responding to random character strings. Analyze patterns and respond creatively."
+    description: "Random character sequences and strings"
+
+  - name: "random_sentences"
+    weight: 0.25
+    system_prompt: "You are an assistant responding to randomly constructed sentences. Engage with the content however nonsensical."
+    description: "Grammatically structured but semantically random sentences"
+
+  - name: "random_mixed"
+    weight: 0.15
+    system_prompt: "You are an assistant responding to mixed random content including words, numbers, and symbols."
+    description: "Mixed random content - words, numbers, symbols"
+
+  - name: "random_lorem"
+    weight: 0.15
+    system_prompt: "You are an assistant responding to lorem ipsum style placeholder text. Respond as if the content were meaningful."
+    description: "Lorem ipsum style pseudo-Latin text"
+
+response_length:
+  # Token count ranges for assistant responses (approximate word count)
+  short:
+    min_words: 20
+    max_words: 80
+  medium:
+    min_words: 80
+    max_words: 250
+  long:
+    min_words: 250
+    max_words: 600
+  # Longer conversations should have more long responses to grow context
+  length_distribution_by_turn:
+    early:   # turns 1-5
+      short: 0.3
+      medium: 0.5
+      long: 0.2
+    middle:  # turns 6-20
+      short: 0.2
+      medium: 0.4
+      long: 0.4
+    late:    # turns 21+
+      short: 0.1
+      medium: 0.3
+      long: 0.6

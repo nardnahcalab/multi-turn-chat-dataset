@@ -19,6 +19,8 @@ PARQUET_FILES = {
     "image": "image/data/multi_turn_image_chat.parquet",
     "reasoning": "reasoning/data/multi_turn_reasoning_chat.parquet",
     "agentic": "agentic/data/multi_turn_agentic_task.parquet",
+    "random": "random/data/multi_turn_random_chat.parquet",
+    "repeat": "repeat/data/multi_turn_repeat_chat.parquet",
 }
 
 
