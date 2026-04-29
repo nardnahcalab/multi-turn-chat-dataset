@@ -7,6 +7,15 @@ dataset:
   output_filename: "multi_turn_image_chat.parquet"
   seed: 42
 
+# Custom tags for dataset identification and filtering
+# Auto-generated tags (synthetic, multi-turn, dataset type, size, etc.) are added automatically
+tags:
+  custom:
+    - "multimodal"
+    - "image-chat"
+    - "wikipedia-images"
+    - "visual-analysis"
+
 images:
   count: 150
   cache_file: "data/wikipedia_images.json"

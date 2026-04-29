@@ -19,6 +19,7 @@ import hashlib
 import json
 import random
 import string
+import sys
 import uuid
 from pathlib import Path
 
@@ -26,6 +27,15 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
+
+# Add project root to path for shared module
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from dataset_profile import (
+    build_descriptive_name,
+    build_manifest,
+    print_profile_summary,
+    save_manifest,
+)
 
 # ---------------------------------------------------------------------------
 # Word pools for random content generation
@@ -589,8 +599,13 @@ def main():
     parser.add_argument("--seed", type=int, default=None, help="Override random seed")
     parser.add_argument("--output", default=None, help="Override output path")
     parser.add_argument("--format", choices=["all", "parquet", "aiperf", "mooncake"],
-                        default="all", help="Output format(s): parquet, aiperf (multi_turn JSONL), "
-                        "mooncake (mooncake_trace JSONL), or all (default)")
+                        default="all", help="Output format(s)")
+    parser.add_argument("--name", default=None,
+                        help="Custom suffix for descriptive output filenames")
+    parser.add_argument("--descriptive-names", action="store_true", default=False,
+                        help="Use descriptive filenames encoding count, seed, version, and date")
+    parser.add_argument("--no-profile", action="store_true", default=False,
+                        help="Skip generating the dataset manifest/profile JSON")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -603,14 +618,13 @@ def main():
     seed = args.seed if args.seed is not None else config["dataset"]["seed"]
     generator = ConversationGenerator(config, seed=seed)
 
-    print(f"Generating conversations (seed={seed})...")
-    conversations = generator.generate_dataset(num_conversations=args.num)
+    num_conversations = args.num
+    print(f"Generating random conversations (seed={seed})...")
+    conversations = generator.generate_dataset(num_conversations=num_conversations)
     print(f"Generated {len(conversations)} conversations")
 
-    # Build DataFrame
     df = pd.DataFrame(conversations)
 
-    # Summary statistics
     print(f"\n--- Dataset Summary ---")
     print(f"Total conversations: {len(df)}")
     print(f"Turn count range: {df['num_turns'].min()} - {df['num_turns'].max()}")
@@ -622,40 +636,62 @@ def main():
     print(f"Mean tokens/conversation: {df['estimated_tokens'].mean():,.0f}")
     print(f"Max tokens (single conversation): {df['estimated_tokens'].max():,}")
 
-    # Determine output directory
     output_dir = Path(args.output).parent if args.output else Path(__file__).parent / config["dataset"]["output_dir"]
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    fmt = args.format
+    actual_count = len(df)
+    descriptive_name = build_descriptive_name(
+        config, actual_count, seed, "random", custom_suffix=args.name
+    )
 
-    # Write Parquet
+    if args.descriptive_names:
+        file_base = descriptive_name
+    else:
+        file_base = config["dataset"]["output_filename"].replace(".parquet", "")
+
+    fmt = args.format
+    output_files = {}
+
     if fmt in ("all", "parquet"):
-        parquet_path = Path(args.output) if args.output and fmt == "parquet" else output_dir / config["dataset"]["output_filename"]
+        parquet_path = Path(args.output) if args.output and fmt == "parquet" else output_dir / f"{file_base}.parquet"
         df.to_parquet(parquet_path, engine="pyarrow", index=False)
         file_size_mb = parquet_path.stat().st_size / (1024 * 1024)
+        output_files["parquet"] = str(parquet_path)
         print(f"\nParquet written to: {parquet_path} ({file_size_mb:.2f} MB)")
 
-    # Write aiperf multi_turn JSONL
     if fmt in ("all", "aiperf"):
         aiperf_entries = convert_to_aiperf_multi_turn(conversations)
-        jsonl_path = output_dir / config["dataset"]["output_filename"].replace(".parquet", ".jsonl")
+        jsonl_path = output_dir / f"{file_base}.jsonl"
         with open(jsonl_path, "w") as f:
             for entry in aiperf_entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         file_size_mb = jsonl_path.stat().st_size / (1024 * 1024)
+        output_files["aiperf_multi_turn"] = str(jsonl_path)
         print(f"aiperf multi_turn JSONL written to: {jsonl_path} ({file_size_mb:.2f} MB)")
-        print(f"  Usage: aiperf profile --input-file {jsonl_path} --custom-dataset-type multi_turn ...")
 
-    # Write aiperf mooncake_trace JSONL
     if fmt in ("all", "mooncake"):
         mooncake_entries = convert_to_aiperf_mooncake(conversations)
-        mooncake_path = output_dir / config["dataset"]["output_filename"].replace(".parquet", "_mooncake.jsonl")
+        mooncake_path = output_dir / f"{file_base}_mooncake.jsonl"
         with open(mooncake_path, "w") as f:
             for entry in mooncake_entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         file_size_mb = mooncake_path.stat().st_size / (1024 * 1024)
+        output_files["mooncake_trace"] = str(mooncake_path)
         print(f"aiperf mooncake_trace JSONL written to: {mooncake_path} ({file_size_mb:.2f} MB)")
-        print(f"  Usage: aiperf profile --input-file {mooncake_path} --custom-dataset-type mooncake_trace ...")
+
+    if not args.no_profile:
+        manifest = build_manifest(
+            df=df,
+            config=config,
+            dataset_type="random",
+            seed=seed,
+            output_files=output_files,
+            descriptive_name=descriptive_name,
+        )
+        manifest_path = save_manifest(manifest, output_dir, file_base)
+        output_files["manifest"] = str(manifest_path)
+        print(f"\nDataset manifest written to: {manifest_path}")
+        print_profile_summary(manifest)
 
 
 if __name__ == "__main__":

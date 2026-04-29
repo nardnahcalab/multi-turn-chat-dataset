@@ -1,0 +1,272 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-04-29T17:18:21.108287+00:00",
+  "dataset": {
+    "name": "multi-turn-text-chat",
+    "descriptive_name": "multi_turn_text_chat_n500_s42_v1.0.0_20260429",
+    "type": "text",
+    "version": "1.0.0",
+    "description": "Synthetic multi-turn text conversations for benchmarking inference with prefix caching",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "text-only",
+      "conversational",
+      "kv-cache-benchmark"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "text",
+      "medium",
+      "n500",
+      "1M-5M-tokens",
+      "very-long-context"
+    ],
+    "all_tags": [
+      "1M-5M-tokens",
+      "benchmarking",
+      "conversational",
+      "inference",
+      "kv-cache-benchmark",
+      "medium",
+      "multi-turn",
+      "n500",
+      "prefix-caching",
+      "synthetic",
+      "text",
+      "text-only",
+      "very-long-context"
+    ]
+  },
+  "output_files": {
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat.parquet"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 50,
+      "mean": 18.81,
+      "median": 15.5,
+      "stdev": 13.73,
+      "percentiles": {
+        "p5": 2.0,
+        "p25": 8.0,
+        "p50": 15.5,
+        "p75": 28.0,
+        "p95": 46.0,
+        "p99": 49.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-5.9",
+          "count": 100
+        },
+        {
+          "range": "5.9-10.8",
+          "count": 71
+        },
+        {
+          "range": "10.8-15.7",
+          "count": 79
+        },
+        {
+          "range": "15.7-20.6",
+          "count": 51
+        },
+        {
+          "range": "20.6-25.5",
+          "count": 54
+        },
+        {
+          "range": "25.5-30.4",
+          "count": 45
+        },
+        {
+          "range": "30.4-35.3",
+          "count": 27
+        },
+        {
+          "range": "35.3-40.2",
+          "count": 21
+        },
+        {
+          "range": "40.2-45.1",
+          "count": 23
+        },
+        {
+          "range": "45.1-50.0",
+          "count": 29
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 100,
+          "percentage": 20.0
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 150,
+          "percentage": 30.0
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 150,
+          "percentage": 30.0
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 100,
+          "percentage": 20.0
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 3945154,
+      "min": 86,
+      "max": 25797,
+      "mean": 7890.31,
+      "median": 6148.5,
+      "stdev": 6497.44,
+      "percentiles": {
+        "p5": 536.0,
+        "p25": 2394.5,
+        "p50": 6148.5,
+        "p75": 12192.25,
+        "p95": 20994.0,
+        "p99": 23954.47
+      },
+      "histogram": [
+        {
+          "range": "86.0-2657.1",
+          "count": 138
+        },
+        {
+          "range": "2657.1-5228.2",
+          "count": 85
+        },
+        {
+          "range": "5228.2-7799.3",
+          "count": 77
+        },
+        {
+          "range": "7799.3-10370.4",
+          "count": 46
+        },
+        {
+          "range": "10370.4-12941.5",
+          "count": 44
+        },
+        {
+          "range": "12941.5-15512.6",
+          "count": 35
+        },
+        {
+          "range": "15512.6-18083.7",
+          "count": 22
+        },
+        {
+          "range": "18083.7-20654.8",
+          "count": 24
+        },
+        {
+          "range": "20654.8-23225.9",
+          "count": 19
+        },
+        {
+          "range": "23225.9-25797.0",
+          "count": 10
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 15781321,
+      "min": 345,
+      "max": 103188,
+      "mean": 31562.64,
+      "median": 24595.5,
+      "stdev": 25989.74,
+      "percentiles": {
+        "p5": 2144.15,
+        "p25": 9580.25,
+        "p50": 24595.5,
+        "p75": 48772.0,
+        "p95": 83976.1,
+        "p99": 95819.88
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 101,
+      "mean": 38.61,
+      "median": 32.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 1.09,
+        "max": 254.47,
+        "mean": 31.55,
+        "median": 20.23
+      },
+      "first_turn_chars": {
+        "mean": 1497.04,
+        "median": 1257.5
+      },
+      "last_turn_chars": {
+        "mean": 32935.1,
+        "median": 25743.0
+      }
+    },
+    "category_distribution": {
+      "column": "topic",
+      "distribution": [
+        {
+          "value": "coding_help",
+          "count": 102,
+          "percentage": 20.4
+        },
+        {
+          "value": "customer_support",
+          "count": 86,
+          "percentage": 17.2
+        },
+        {
+          "value": "tutoring",
+          "count": 70,
+          "percentage": 14.0
+        },
+        {
+          "value": "health_fitness",
+          "count": 56,
+          "percentage": 11.2
+        },
+        {
+          "value": "business_strategy",
+          "count": 52,
+          "percentage": 10.4
+        },
+        {
+          "value": "data_analysis",
+          "count": 45,
+          "percentage": 9.0
+        },
+        {
+          "value": "travel_planning",
+          "count": 45,
+          "percentage": 9.0
+        },
+        {
+          "value": "creative_writing",
+          "count": 44,
+          "percentage": 8.8
+        }
+      ]
+    }
+  }
+}

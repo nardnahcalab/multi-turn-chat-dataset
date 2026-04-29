@@ -7,6 +7,15 @@ dataset:
   output_filename: "multi_turn_pdf_chat.parquet"
   seed: 42
 
+# Custom tags for dataset identification and filtering
+# Auto-generated tags (synthetic, multi-turn, dataset type, size, etc.) are added automatically
+tags:
+  custom:
+    - "multimodal"
+    - "pdf-chat"
+    - "arxiv-papers"
+    - "document-analysis"
+
 papers:
   count: 100
   cache_file: "data/arxiv_papers.json"

@@ -7,6 +7,15 @@ dataset:
   output_filename: "multi_turn_agentic_task.parquet"
   seed: 42
 
+# Custom tags for dataset identification and filtering
+# Auto-generated tags (synthetic, multi-turn, dataset type, size, etc.) are added automatically
+tags:
+  custom:
+    - "tool-use"
+    - "agent-benchmark"
+    - "success-metrics"
+    - "error-recovery"
+
 turns:
   min: 2
   max: 15

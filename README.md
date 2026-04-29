@@ -1017,6 +1017,117 @@ Edit `repeat/config.yaml` to customize:
 - Response length distributions (short/medium/long) by conversation phase
 - Random seed for reproducibility
 
+## Dataset Tagging, Naming, and Distribution Profile
+
+Every generator now automatically produces a **dataset manifest** — a JSON sidecar file containing tags, descriptive metadata, and a comprehensive distribution profile. This makes it easy to identify, compare, and filter datasets without loading the full Parquet files.
+
+### Dataset Tags
+
+Tags are a combination of **user-defined** custom tags (configured in `config.yaml`) and **auto-generated** tags derived from dataset characteristics.
+
+```yaml
+# In config.yaml
+tags:
+  custom:
+    - "text-only"
+    - "conversational"
+    - "kv-cache-benchmark"
+```
+
+Auto-generated tags include: dataset type, size category (`small`/`medium`/`large`), token range (`sub-1M-tokens`, `1M-5M-tokens`, `5M+-tokens`), context length class (`short-context` through `very-long-context`), and type-specific tags like `multimodal`, `tool-use`, `deep-reasoning`, etc.
+
+```bash
+# List all tags across all datasets
+python examples/05_dataset_profile.py --tags
+
+# Find datasets matching specific tags
+python examples/05_dataset_profile.py --filter multimodal long-context
+```
+
+### Descriptive Naming
+
+Generators support descriptive filenames that encode key dataset properties:
+
+```bash
+# Default naming (backward compatible)
+python text/generate.py
+# -> multi_turn_text_chat.parquet
+
+# Descriptive naming with count, seed, version, and date
+python text/generate.py --descriptive-names
+# -> multi_turn_text_chat_n500_s42_v1.0.0_20260429.parquet
+
+# Add a custom suffix
+python text/generate.py --descriptive-names --name experiment1
+# -> multi_turn_text_chat_n500_s42_v1.0.0_20260429_experiment1.parquet
+```
+
+### Distribution Profile
+
+The manifest includes comprehensive statistical distributions for:
+
+- **Turn distribution** — min, max, mean, median, stdev, percentiles (p5-p99), histogram, bucket breakdown
+- **Token distribution** — total, per-conversation stats, percentiles, histogram
+- **Character distribution** — full statistics with percentiles
+- **Category distribution** — topic/type frequencies and percentages
+- **Context growth** — how conversation context grows across turns (growth ratios)
+- **Agentic metrics** — success scores, tool call stats, error rates (agentic only)
+- **Multimodal info** — unique papers/images, topic distributions (pdf/image only)
+
+```bash
+# Profile a single dataset
+python examples/05_dataset_profile.py text
+
+# Profile all datasets
+python examples/05_dataset_profile.py
+
+# Compare two datasets side by side
+python examples/05_dataset_profile.py --compare text reasoning
+```
+
+### Manifest Schema
+
+Each manifest is a JSON file (`*_manifest.json`) saved alongside the dataset:
+
+```json
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-04-29T14:30:00+00:00",
+  "dataset": {
+    "name": "multi-turn-text-chat",
+    "descriptive_name": "multi_turn_text_chat_n500_s42_v1.0.0_20260429",
+    "type": "text",
+    "version": "1.0.0",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": ["text-only", "conversational", "kv-cache-benchmark"],
+    "auto_tags": ["synthetic", "multi-turn", "benchmarking", "text", "medium", "n500", ...],
+    "all_tags": ["1M-5M-tokens", "benchmarking", "conversational", ...]
+  },
+  "output_files": {
+    "parquet": "text/data/multi_turn_text_chat.parquet",
+    "aiperf_multi_turn": "text/data/multi_turn_text_chat.jsonl",
+    "mooncake_trace": "text/data/multi_turn_text_chat_mooncake.jsonl"
+  },
+  "distribution_profile": {
+    "turn_distribution": { "min": 1, "max": 50, "mean": 18.7, "percentiles": {...}, ... },
+    "token_distribution": { "total": 3900000, "mean": 7800, ... },
+    "category_distribution": { "column": "topic", "distribution": [...] },
+    "context_growth": { "growth_ratio": { "mean": 12.3, "max": 48.7 } }
+  }
+}
+```
+
+### CLI Flags (all generators)
+
+| Flag | Description |
+|------|-------------|
+| `--descriptive-names` | Use descriptive filenames encoding count, seed, version, and date |
+| `--name SUFFIX` | Add a custom suffix to the descriptive filename |
+| `--no-profile` | Skip generating the manifest/profile JSON |
+
 ## Project Structure
 
 ```
@@ -1024,50 +1135,72 @@ multi-turn-chat-dataset/
 ├── README.md
 ├── LICENSE
 ├── requirements.txt
+├── dataset_profile.py       # Shared module: tagging, naming, distribution profiling
 ├── text/
 │   ├── generate.py          # Generation script
-│   ├── config.yaml          # Configuration
+│   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_text_chat.parquet        # Full dataset (Parquet)
-│       ├── multi_turn_text_chat.jsonl           # aiperf multi_turn format
-│       └── multi_turn_text_chat_mooncake.jsonl  # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_text_chat.parquet              # Full dataset (Parquet)
+│       ├── multi_turn_text_chat.jsonl                # aiperf multi_turn format
+│       ├── multi_turn_text_chat_manifest.json        # Dataset manifest (tags + profile)
+│       └── multi_turn_text_chat_mooncake.jsonl       # aiperf mooncake_trace (generated, not in git)
 ├── pdf/
 │   ├── generate.py          # Generation script (fetches arXiv papers)
-│   ├── config.yaml          # Configuration
+│   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── arxiv_papers.json                   # Cached paper metadata
-│       ├── multi_turn_pdf_chat.parquet         # Full dataset (Parquet)
-│       ├── multi_turn_pdf_chat.jsonl           # aiperf multi_turn format
-│       └── multi_turn_pdf_chat_mooncake.jsonl  # aiperf mooncake_trace (generated, not in git)
+│       ├── arxiv_papers.json                         # Cached paper metadata
+│       ├── multi_turn_pdf_chat.parquet               # Full dataset (Parquet)
+│       ├── multi_turn_pdf_chat.jsonl                 # aiperf multi_turn format
+│       ├── multi_turn_pdf_chat_manifest.json         # Dataset manifest (tags + profile)
+│       └── multi_turn_pdf_chat_mooncake.jsonl        # aiperf mooncake_trace (generated, not in git)
 ├── image/
 │   ├── generate.py          # Generation script (fetches Wikipedia images)
-│   ├── config.yaml          # Configuration
+│   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── wikipedia_images.json                  # Cached image metadata
-│       ├── multi_turn_image_chat.parquet           # Full dataset (Parquet)
-│       ├── multi_turn_image_chat.jsonl             # aiperf multi_turn format
-│       └── multi_turn_image_chat_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
+│       ├── wikipedia_images.json                     # Cached image metadata
+│       ├── multi_turn_image_chat.parquet             # Full dataset (Parquet)
+│       ├── multi_turn_image_chat.jsonl               # aiperf multi_turn format
+│       ├── multi_turn_image_chat_manifest.json       # Dataset manifest (tags + profile)
+│       └── multi_turn_image_chat_mooncake.jsonl      # aiperf mooncake_trace (generated, not in git)
 ├── reasoning/
 │   ├── generate.py          # Generation script (deep reasoning conversations)
-│   ├── config.yaml          # Configuration
+│   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_reasoning_chat.parquet           # Full dataset (Parquet)
-│       ├── multi_turn_reasoning_chat.jsonl             # aiperf multi_turn format
-│       └── multi_turn_reasoning_chat_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_reasoning_chat.parquet         # Full dataset (Parquet)
+│       ├── multi_turn_reasoning_chat.jsonl           # aiperf multi_turn format
+│       ├── multi_turn_reasoning_chat_manifest.json   # Dataset manifest (tags + profile)
+│       └── multi_turn_reasoning_chat_mooncake.jsonl  # aiperf mooncake_trace (generated, not in git)
+├── agentic/
+│   ├── generate.py          # Generation script (agent tasks with tool-use)
+│   ├── config.yaml          # Configuration (includes tags)
+│   └── data/
+│       ├── multi_turn_agentic_task.parquet           # Full dataset (Parquet)
+│       ├── multi_turn_agentic_task.jsonl             # aiperf multi_turn format
+│       ├── multi_turn_agentic_task_manifest.json     # Dataset manifest (tags + profile)
+│       └── multi_turn_agentic_task_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
 ├── random/
 │   ├── generate.py          # Generation script (random/gibberish text)
-│   ├── config.yaml          # Configuration
+│   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_random_chat.parquet              # Full dataset (Parquet)
-│       ├── multi_turn_random_chat.jsonl                # aiperf multi_turn format
-│       └── multi_turn_random_chat_mooncake.jsonl       # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_random_chat.parquet            # Full dataset (Parquet)
+│       ├── multi_turn_random_chat.jsonl              # aiperf multi_turn format
+│       ├── multi_turn_random_chat_manifest.json      # Dataset manifest (tags + profile)
+│       └── multi_turn_random_chat_mooncake.jsonl     # aiperf mooncake_trace (generated, not in git)
 ├── repeat/
 │   ├── generate.py          # Generation script (repetitive text)
-│   ├── config.yaml          # Configuration
+│   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_repeat_chat.parquet              # Full dataset (Parquet)
-│       ├── multi_turn_repeat_chat.jsonl                # aiperf multi_turn format
-│       └── multi_turn_repeat_chat_mooncake.jsonl       # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_repeat_chat.parquet            # Full dataset (Parquet)
+│       ├── multi_turn_repeat_chat.jsonl              # aiperf multi_turn format
+│       ├── multi_turn_repeat_chat_manifest.json      # Dataset manifest (tags + profile)
+│       └── multi_turn_repeat_chat_mooncake.jsonl     # aiperf mooncake_trace (generated, not in git)
+├── examples/
+│   ├── 01_load_and_inspect.py      # Load datasets + show tags & profile
+│   ├── 02_analyze_conversations.py # Context growth analysis
+│   ├── 03_prepare_for_benchmarking.py
+│   ├── 04_agentic_analysis.py
+│   ├── 05_dataset_profile.py       # Dataset profiling, tagging, comparison
+│   └── README.md
 └── .gitignore
 ```
 

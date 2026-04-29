@@ -24,7 +24,17 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+import sys
 import yaml
+
+# Add project root to path for shared module
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from dataset_profile import (
+    build_descriptive_name,
+    build_manifest,
+    print_profile_summary,
+    save_manifest,
+)
 
 # ---------------------------------------------------------------------------
 # Wikipedia image fetching
@@ -956,9 +966,7 @@ def convert_to_aiperf_mooncake(conversations: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate synthetic multi-turn image chat dataset from Wikipedia images"
-    )
+    parser = argparse.ArgumentParser(description="Generate synthetic multi-turn image chat dataset")
     parser.add_argument("--config", default="config.yaml", help="Path to config YAML")
     parser.add_argument("--num", type=int, default=None, help="Override number of conversations")
     parser.add_argument("--seed", type=int, default=None, help="Override random seed")
@@ -966,7 +974,13 @@ def main():
     parser.add_argument("--format", choices=["all", "parquet", "aiperf", "mooncake"],
                         default="all", help="Output format(s)")
     parser.add_argument("--skip-fetch", action="store_true",
-                        help="Skip Wikipedia fetch, reuse cached images")
+                        help="Skip fetching images, use cached data")
+    parser.add_argument("--name", default=None,
+                        help="Custom suffix for descriptive output filenames")
+    parser.add_argument("--descriptive-names", action="store_true", default=False,
+                        help="Use descriptive filenames encoding count, seed, version, and date")
+    parser.add_argument("--no-profile", action="store_true", default=False,
+                        help="Skip generating the dataset manifest/profile JSON")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -977,9 +991,9 @@ def main():
         config = yaml.safe_load(f)
 
     seed = args.seed if args.seed is not None else config["dataset"]["seed"]
-    cache_path = Path(__file__).parent / config["images"]["cache_file"]
 
-    # Fetch or load Wikipedia images
+    # Fetch or load cached images
+    cache_path = Path(__file__).parent / config["images"]["cache_file"]
     if args.skip_fetch and cache_path.exists():
         print(f"Loading cached images from {cache_path}")
         with open(cache_path) as f:
@@ -987,72 +1001,80 @@ def main():
     else:
         images = fetch_wikipedia_images(config, cache_path)
 
-    print(f"Using {len(images)} Wikipedia images")
-
-    # Generate conversations
     generator = ImageConversationGenerator(config, images, seed=seed)
 
+    num_conversations = args.num
     print(f"Generating image conversations (seed={seed})...")
-    conversations = generator.generate_dataset(num_conversations=args.num)
+    conversations = generator.generate_dataset(num_conversations=num_conversations)
     print(f"Generated {len(conversations)} conversations")
 
-    # Build DataFrame
     df = pd.DataFrame(conversations)
 
-    # Summary statistics
-    print(f"\n--- Image Dataset Summary ---")
+    print(f"\n--- Dataset Summary ---")
     print(f"Total conversations: {len(df)}")
     print(f"Turn count range: {df['num_turns'].min()} - {df['num_turns'].max()}")
     print(f"Mean turns: {df['num_turns'].mean():.1f}")
-    print(f"Unique images used: {df['image_url'].nunique()}")
-    print(f"Topic distribution:")
-    for topic, count in df["image_topic"].value_counts().items():
-        print(f"  {topic}: {count} ({100*count/len(df):.1f}%)")
     print(f"Conversation type distribution:")
     for ctype, count in df["conversation_type"].value_counts().items():
         print(f"  {ctype}: {count} ({100*count/len(df):.1f}%)")
     print(f"Estimated total tokens: {df['estimated_tokens'].sum():,}")
-    print(f"Mean tokens/conversation: {df['estimated_tokens'].mean():,.0f}")
-    print(f"Max tokens (single conversation): {df['estimated_tokens'].max():,}")
 
-    # Output
-    output_dir = (Path(args.output).parent if args.output
-                  else Path(__file__).parent / config["dataset"]["output_dir"])
+    output_dir = Path(args.output).parent if args.output else Path(__file__).parent / config["dataset"]["output_dir"]
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    actual_count = len(df)
+    descriptive_name = build_descriptive_name(
+        config, actual_count, seed, "image", custom_suffix=args.name
+    )
+
+    if args.descriptive_names:
+        file_base = descriptive_name
+    else:
+        file_base = config["dataset"]["output_filename"].replace(".parquet", "")
+
     fmt = args.format
+    output_files = {}
 
     if fmt in ("all", "parquet"):
-        parquet_path = (Path(args.output) if args.output and fmt == "parquet"
-                        else output_dir / config["dataset"]["output_filename"])
+        parquet_path = Path(args.output) if args.output and fmt == "parquet" else output_dir / f"{file_base}.parquet"
         df.to_parquet(parquet_path, engine="pyarrow", index=False)
-        mb = parquet_path.stat().st_size / (1024 * 1024)
-        print(f"\nParquet written to: {parquet_path} ({mb:.2f} MB)")
+        file_size_mb = parquet_path.stat().st_size / (1024 * 1024)
+        output_files["parquet"] = str(parquet_path)
+        print(f"\nParquet written to: {parquet_path} ({file_size_mb:.2f} MB)")
 
     if fmt in ("all", "aiperf"):
-        entries = convert_to_aiperf_multi_turn(conversations)
-        jsonl_path = output_dir / config["dataset"]["output_filename"].replace(
-            ".parquet", ".jsonl"
-        )
+        aiperf_entries = convert_to_aiperf_multi_turn(conversations)
+        jsonl_path = output_dir / f"{file_base}.jsonl"
         with open(jsonl_path, "w") as f:
-            for entry in entries:
+            for entry in aiperf_entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        mb = jsonl_path.stat().st_size / (1024 * 1024)
-        print(f"aiperf multi_turn JSONL written to: {jsonl_path} ({mb:.2f} MB)")
-        print(f"  Usage: aiperf profile --input-file {jsonl_path} "
-              f"--custom-dataset-type multi_turn ...")
+        file_size_mb = jsonl_path.stat().st_size / (1024 * 1024)
+        output_files["aiperf_multi_turn"] = str(jsonl_path)
+        print(f"aiperf multi_turn JSONL written to: {jsonl_path} ({file_size_mb:.2f} MB)")
 
     if fmt in ("all", "mooncake"):
-        entries = convert_to_aiperf_mooncake(conversations)
-        mooncake_path = output_dir / config["dataset"]["output_filename"].replace(
-            ".parquet", "_mooncake.jsonl"
-        )
+        mooncake_entries = convert_to_aiperf_mooncake(conversations)
+        mooncake_path = output_dir / f"{file_base}_mooncake.jsonl"
         with open(mooncake_path, "w") as f:
-            for entry in entries:
+            for entry in mooncake_entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        mb = mooncake_path.stat().st_size / (1024 * 1024)
-        print(f"aiperf mooncake_trace JSONL written to: {mooncake_path} ({mb:.2f} MB)")
-        print(f"  Usage: aiperf profile --input-file {mooncake_path} "
-              f"--custom-dataset-type mooncake_trace ...")
+        file_size_mb = mooncake_path.stat().st_size / (1024 * 1024)
+        output_files["mooncake_trace"] = str(mooncake_path)
+        print(f"aiperf mooncake_trace JSONL written to: {mooncake_path} ({file_size_mb:.2f} MB)")
+
+    if not args.no_profile:
+        manifest = build_manifest(
+            df=df,
+            config=config,
+            dataset_type="image",
+            seed=seed,
+            output_files=output_files,
+            descriptive_name=descriptive_name,
+        )
+        manifest_path = save_manifest(manifest, output_dir, file_base)
+        output_files["manifest"] = str(manifest_path)
+        print(f"\nDataset manifest written to: {manifest_path}")
+        print_profile_summary(manifest)
 
 
 if __name__ == "__main__":

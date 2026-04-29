@@ -6,9 +6,15 @@ This example demonstrates how to load the generated datasets and inspect their s
 It works with all dataset types: text, pdf, image, reasoning, and agentic.
 """
 
-import pandas as pd
 import json
+import sys
 from pathlib import Path
+
+import pandas as pd
+
+# Add project root to path for shared module
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from dataset_profile import generate_tags, compute_distribution_profile
 
 
 # Map dataset type to its parquet filename
@@ -175,12 +181,66 @@ def analyze_statistics(dataset_type: str = "text"):
         print(f"  Error rate: {(df['num_errors'].sum() / df['num_tool_calls'].sum() * 100):.1f}%")
 
 
+def show_tags_and_profile(dataset_type: str = "text"):
+    """
+    Display dataset tags and a quick distribution profile summary.
+    Uses pre-generated manifest if available, otherwise computes on the fly.
+    """
+    import yaml
+
+    project_root = Path(__file__).resolve().parent.parent
+    parquet_path = project_root / PARQUET_FILES.get(dataset_type, "")
+
+    if not parquet_path.exists():
+        return
+
+    # Try loading pre-generated manifest
+    manifest_base = parquet_path.stem  # e.g. "multi_turn_text_chat"
+    manifest_path = parquet_path.parent / f"{manifest_base}_manifest.json"
+    if manifest_path.exists():
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+        tags = manifest["tags"]
+        profile = manifest["distribution_profile"]
+        print(f"\n  (Loaded manifest from {manifest_path.name})")
+    else:
+        # Compute on the fly
+        df = pd.read_parquet(parquet_path)
+        config_path = project_root / f"{dataset_type}/config.yaml"
+        config = {}
+        if config_path.exists():
+            with open(config_path) as f:
+                config = yaml.safe_load(f)
+        tags = generate_tags(df, config, dataset_type)
+        profile = compute_distribution_profile(df, config, dataset_type)
+
+    print(f"\nDataset Tags:")
+    if tags.get("user_tags"):
+        print(f"  Custom:  {', '.join(tags['user_tags'])}")
+    print(f"  Auto:    {', '.join(tags.get('auto_tags', []))}")
+    print(f"  All:     {', '.join(tags['all_tags'])}")
+
+    print(f"\nDistribution Profile (quick summary):")
+    td = profile["turn_distribution"]
+    print(f"  Turns:   {td['min']}-{td['max']} (mean={td['mean']}, median={td['median']})")
+    for bucket in td.get("bucket_distribution", []):
+        bar = "#" * max(1, bucket["count"] // 5)
+        print(f"    {bucket['bucket']:20s} {bucket['count']:4d} ({bucket['percentage']:5.1f}%) {bar}")
+
+    tkd = profile["token_distribution"]
+    print(f"  Tokens:  {tkd['total']:,} total, {tkd['mean']:,.0f} mean, {tkd['max']:,} max")
+
+    cg = profile.get("context_growth", {})
+    if "growth_ratio" in cg:
+        gr = cg["growth_ratio"]
+        print(f"  Growth:  {gr['mean']:.1f}x mean, {gr['max']:.1f}x max")
+
+
 if __name__ == "__main__":
-    import sys
-    
     # Default to text dataset, but allow command-line override
     dataset_type = sys.argv[1] if len(sys.argv) > 1 else "text"
-    
-    print(f"\n🔍 Inspecting {dataset_type} dataset...")
+
+    print(f"\nInspecting {dataset_type} dataset...")
     inspect_dataset(dataset_type, num_samples=3)
     analyze_statistics(dataset_type)
+    show_tags_and_profile(dataset_type)

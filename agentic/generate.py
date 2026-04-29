@@ -22,6 +22,7 @@ Usage:
 import argparse
 import json
 import random
+import sys
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -30,6 +31,15 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
+
+# Add project root to path for shared module
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from dataset_profile import (
+    build_descriptive_name,
+    build_manifest,
+    print_profile_summary,
+    save_manifest,
+)
 
 # ---------------------------------------------------------------------------
 # Task-specific conversation templates
@@ -1038,6 +1048,12 @@ def main():
         default="all",
         help="Output format(s)",
     )
+    parser.add_argument("--name", default=None,
+                        help="Custom suffix for descriptive output filenames")
+    parser.add_argument("--descriptive-names", action="store_true", default=False,
+                        help="Use descriptive filenames encoding count, seed, version, and date")
+    parser.add_argument("--no-profile", action="store_true", default=False,
+                        help="Skip generating the dataset manifest/profile JSON")
 
     args = parser.parse_args()
 
@@ -1069,11 +1085,48 @@ def main():
     print(f"Turn count statistics:\n{df['num_turns'].describe()}")
     print(f"Success score statistics:\n{df['success_score'].describe()}")
 
+    # Build descriptive name
+    actual_count = len(df)
+    descriptive_name = build_descriptive_name(
+        config, actual_count, seed, "agentic", custom_suffix=args.name
+    )
+
+    # Choose file basename: descriptive or original
+    if args.descriptive_names:
+        file_base = descriptive_name
+        output_filename = f"{file_base}.parquet"
+    else:
+        file_base = output_filename.replace(".parquet", "")
+
     # Determine formats to save
     formats = ["parquet", "aiperf", "mooncake"] if args.format == "all" else [args.format]
 
     print(f"\nSaving dataset in formats: {formats}")
     save_dataset(df, str(output_dir), output_filename, formats)
+
+    # Collect output file paths for manifest
+    output_files = {}
+    if "parquet" in formats:
+        output_files["parquet"] = str(output_dir / f"{file_base}.parquet")
+    if "aiperf" in formats:
+        output_files["aiperf_multi_turn"] = str(output_dir / f"{file_base}.jsonl")
+    if "mooncake" in formats:
+        output_files["mooncake_trace"] = str(output_dir / f"{file_base}_mooncake.jsonl")
+
+    # Generate and save dataset manifest (tags + distribution profile)
+    if not args.no_profile:
+        manifest = build_manifest(
+            df=df,
+            config=config,
+            dataset_type="agentic",
+            seed=seed,
+            output_files=output_files,
+            descriptive_name=descriptive_name,
+        )
+        manifest_path = save_manifest(manifest, output_dir, file_base)
+        output_files["manifest"] = str(manifest_path)
+        print(f"\nDataset manifest written to: {manifest_path}")
+        print_profile_summary(manifest)
 
     print("\n✓ Dataset generation complete!")
 

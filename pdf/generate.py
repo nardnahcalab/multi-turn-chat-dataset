@@ -18,6 +18,7 @@ Usage:
 import argparse
 import json
 import random
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -26,6 +27,15 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
+
+# Add project root to path for shared module
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from dataset_profile import (
+    build_descriptive_name,
+    build_manifest,
+    print_profile_summary,
+    save_manifest,
+)
 
 # ---------------------------------------------------------------------------
 # arXiv paper fetcher
@@ -732,6 +742,12 @@ def main():
                         default="all", help="Output format(s)")
     parser.add_argument("--skip-fetch", action="store_true",
                         help="Skip arXiv fetch, reuse cached papers")
+    parser.add_argument("--name", default=None,
+                        help="Custom suffix for descriptive output filenames")
+    parser.add_argument("--descriptive-names", action="store_true", default=False,
+                        help="Use descriptive filenames encoding count, seed, version, and date")
+    parser.add_argument("--no-profile", action="store_true", default=False,
+                        help="Skip generating the dataset manifest/profile JSON")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -754,17 +770,15 @@ def main():
 
     print(f"Using {len(papers)} arXiv papers")
 
-    # Generate conversations
     generator = PDFConversationGenerator(config, papers, seed=seed)
 
+    num_conversations = args.num
     print(f"Generating PDF conversations (seed={seed})...")
-    conversations = generator.generate_dataset(num_conversations=args.num)
+    conversations = generator.generate_dataset(num_conversations=num_conversations)
     print(f"Generated {len(conversations)} conversations")
 
-    # Build DataFrame
     df = pd.DataFrame(conversations)
 
-    # Summary statistics
     print(f"\n--- PDF Dataset Summary ---")
     print(f"Total conversations: {len(df)}")
     print(f"Turn count range: {df['num_turns'].min()} - {df['num_turns'].max()}")
@@ -777,44 +791,64 @@ def main():
     print(f"Mean tokens/conversation: {df['estimated_tokens'].mean():,.0f}")
     print(f"Max tokens (single conversation): {df['estimated_tokens'].max():,}")
 
-    # Output
     output_dir = (Path(args.output).parent if args.output
                   else Path(__file__).parent / config["dataset"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    actual_count = len(df)
+    descriptive_name = build_descriptive_name(
+        config, actual_count, seed, "pdf", custom_suffix=args.name
+    )
+
+    if args.descriptive_names:
+        file_base = descriptive_name
+    else:
+        file_base = config["dataset"]["output_filename"].replace(".parquet", "")
+
     fmt = args.format
+    output_files = {}
 
     if fmt in ("all", "parquet"):
         parquet_path = (Path(args.output) if args.output and fmt == "parquet"
-                        else output_dir / config["dataset"]["output_filename"])
+                        else output_dir / f"{file_base}.parquet")
         df.to_parquet(parquet_path, engine="pyarrow", index=False)
         mb = parquet_path.stat().st_size / (1024 * 1024)
+        output_files["parquet"] = str(parquet_path)
         print(f"\nParquet written to: {parquet_path} ({mb:.2f} MB)")
 
     if fmt in ("all", "aiperf"):
         entries = convert_to_aiperf_multi_turn(conversations)
-        jsonl_path = output_dir / config["dataset"]["output_filename"].replace(
-            ".parquet", ".jsonl"
-        )
+        jsonl_path = output_dir / f"{file_base}.jsonl"
         with open(jsonl_path, "w") as f:
             for entry in entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         mb = jsonl_path.stat().st_size / (1024 * 1024)
+        output_files["aiperf_multi_turn"] = str(jsonl_path)
         print(f"aiperf multi_turn JSONL written to: {jsonl_path} ({mb:.2f} MB)")
-        print(f"  Usage: aiperf profile --input-file {jsonl_path} "
-              f"--custom-dataset-type multi_turn ...")
 
     if fmt in ("all", "mooncake"):
         entries = convert_to_aiperf_mooncake(conversations)
-        mooncake_path = output_dir / config["dataset"]["output_filename"].replace(
-            ".parquet", "_mooncake.jsonl"
-        )
+        mooncake_path = output_dir / f"{file_base}_mooncake.jsonl"
         with open(mooncake_path, "w") as f:
             for entry in entries:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         mb = mooncake_path.stat().st_size / (1024 * 1024)
+        output_files["mooncake_trace"] = str(mooncake_path)
         print(f"aiperf mooncake_trace JSONL written to: {mooncake_path} ({mb:.2f} MB)")
-        print(f"  Usage: aiperf profile --input-file {mooncake_path} "
-              f"--custom-dataset-type mooncake_trace ...")
+
+    if not args.no_profile:
+        manifest = build_manifest(
+            df=df,
+            config=config,
+            dataset_type="pdf",
+            seed=seed,
+            output_files=output_files,
+            descriptive_name=descriptive_name,
+        )
+        manifest_path = save_manifest(manifest, output_dir, file_base)
+        output_files["manifest"] = str(manifest_path)
+        print(f"\nDataset manifest written to: {manifest_path}")
+        print_profile_summary(manifest)
 
 
 if __name__ == "__main__":

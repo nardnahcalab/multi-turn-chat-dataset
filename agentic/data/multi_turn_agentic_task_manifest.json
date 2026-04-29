@@ -1,0 +1,306 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-04-29T17:18:34.356544+00:00",
+  "dataset": {
+    "name": "multi-turn-agentic-task",
+    "descriptive_name": "multi_turn_agentic_task_n500_s42_v1.0.0_20260429",
+    "type": "agentic",
+    "version": "1.0.0",
+    "description": "Synthetic multi-turn agentic task dataset for benchmarking agent performance with tool-use and success metrics",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "tool-use",
+      "agent-benchmark",
+      "success-metrics",
+      "error-recovery"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "agentic",
+      "medium",
+      "n500",
+      "sub-1M-tokens",
+      "medium-context",
+      "tool-use",
+      "agent-tasks"
+    ],
+    "all_tags": [
+      "agent-benchmark",
+      "agent-tasks",
+      "agentic",
+      "benchmarking",
+      "error-recovery",
+      "inference",
+      "medium",
+      "medium-context",
+      "multi-turn",
+      "n500",
+      "prefix-caching",
+      "sub-1M-tokens",
+      "success-metrics",
+      "synthetic",
+      "tool-use"
+    ]
+  },
+  "output_files": {
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/agentic/data/multi_turn_agentic_task.parquet"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 2,
+      "max": 15,
+      "mean": 7.17,
+      "median": 7.0,
+      "stdev": 3.97,
+      "percentiles": {
+        "p5": 2.0,
+        "p25": 4.0,
+        "p50": 7.0,
+        "p75": 10.0,
+        "p95": 14.0,
+        "p99": 15.0
+      },
+      "histogram": [
+        {
+          "range": "2.0-3.3",
+          "count": 115
+        },
+        {
+          "range": "3.3-4.6",
+          "count": 52
+        },
+        {
+          "range": "4.6-5.9",
+          "count": 44
+        },
+        {
+          "range": "5.9-7.2",
+          "count": 80
+        },
+        {
+          "range": "7.2-8.5",
+          "count": 37
+        },
+        {
+          "range": "8.5-9.8",
+          "count": 20
+        },
+        {
+          "range": "9.8-11.1",
+          "count": 54
+        },
+        {
+          "range": "11.1-12.4",
+          "count": 28
+        },
+        {
+          "range": "12.4-13.7",
+          "count": 28
+        },
+        {
+          "range": "13.7-15.0",
+          "count": 42
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 211,
+          "percentage": 42.2
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 289,
+          "percentage": 57.8
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 0,
+          "percentage": 0.0
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 0,
+          "percentage": 0.0
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 191641,
+      "min": 88,
+      "max": 889,
+      "mean": 383.28,
+      "median": 353.5,
+      "stdev": 213.84,
+      "percentiles": {
+        "p5": 103.95,
+        "p25": 196.0,
+        "p50": 353.5,
+        "p75": 562.75,
+        "p95": 767.05,
+        "p99": 836.05
+      },
+      "histogram": [
+        {
+          "range": "88.0-168.1",
+          "count": 101
+        },
+        {
+          "range": "168.1-248.2",
+          "count": 72
+        },
+        {
+          "range": "248.2-328.3",
+          "count": 62
+        },
+        {
+          "range": "328.3-408.4",
+          "count": 58
+        },
+        {
+          "range": "408.4-488.5",
+          "count": 50
+        },
+        {
+          "range": "488.5-568.6",
+          "count": 35
+        },
+        {
+          "range": "568.6-648.7",
+          "count": 47
+        },
+        {
+          "range": "648.7-728.8",
+          "count": 37
+        },
+        {
+          "range": "728.8-808.9",
+          "count": 25
+        },
+        {
+          "range": "808.9-889.0",
+          "count": 13
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 767321,
+      "min": 353,
+      "max": 3558,
+      "mean": 1534.64,
+      "median": 1415.0,
+      "stdev": 855.37,
+      "percentiles": {
+        "p5": 416.85,
+        "p25": 787.0,
+        "p50": 1415.0,
+        "p75": 2252.5,
+        "p95": 3068.25,
+        "p99": 3344.22
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 29,
+      "mean": 13.34,
+      "median": 13.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 2.19,
+        "max": 23.88,
+        "mean": 9.63,
+        "median": 8.64
+      },
+      "first_turn_chars": {
+        "mean": 160.39,
+        "median": 165.0
+      },
+      "last_turn_chars": {
+        "mean": 1534.64,
+        "median": 1415.0
+      }
+    },
+    "category_distribution": {
+      "column": "task_type",
+      "distribution": [
+        {
+          "value": "data_processing",
+          "count": 110,
+          "percentage": 22.0
+        },
+        {
+          "value": "code_generation",
+          "count": 84,
+          "percentage": 16.8
+        },
+        {
+          "value": "research_synthesis",
+          "count": 84,
+          "percentage": 16.8
+        },
+        {
+          "value": "api_integration",
+          "count": 82,
+          "percentage": 16.4
+        },
+        {
+          "value": "system_troubleshooting",
+          "count": 75,
+          "percentage": 15.0
+        },
+        {
+          "value": "planning_execution",
+          "count": 65,
+          "percentage": 13.0
+        }
+      ]
+    },
+    "agentic_metrics": {
+      "success_score": {
+        "min": 0.1947,
+        "max": 0.9993,
+        "mean": 0.7,
+        "median": 0.7139,
+        "histogram": [
+          {
+            "range": "0.2-0.4",
+            "count": 10
+          },
+          {
+            "range": "0.4-0.5",
+            "count": 43
+          },
+          {
+            "range": "0.5-0.7",
+            "count": 146
+          },
+          {
+            "range": "0.7-0.8",
+            "count": 224
+          },
+          {
+            "range": "0.8-1.0",
+            "count": 77
+          }
+        ]
+      },
+      "tool_calls": {
+        "total": 4716,
+        "mean_per_conversation": 9.43,
+        "max_per_conversation": 31
+      },
+      "errors": {
+        "total": 756,
+        "error_rate": 16.03
+      }
+    }
+  }
+}

@@ -7,6 +7,15 @@ dataset:
   output_filename: "multi_turn_repeat_chat.parquet"
   seed: 42
 
+# Custom tags for dataset identification and filtering
+# Auto-generated tags (synthetic, multi-turn, dataset type, size, etc.) are added automatically
+tags:
+  custom:
+    - "repetitive"
+    - "compressible"
+    - "cache-stress-test"
+    - "deduplication"
+
 turns:
   min: 1
   max: 50
