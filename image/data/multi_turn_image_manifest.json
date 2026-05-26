@@ -1,0 +1,360 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-05-26T22:50:36.449344+00:00",
+  "dataset": {
+    "name": "multi-turn-image-chat",
+    "descriptive_name": "multi_turn_image",
+    "type": "image",
+    "version": "1.0.0",
+    "description": "Synthetic multi-turn image conversations using Wikipedia images for benchmarking multimodal inference with prefix caching",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "multimodal",
+      "image-chat",
+      "wikipedia-images",
+      "visual-analysis"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "image",
+      "medium",
+      "n500",
+      "1M-5M-tokens",
+      "long-context",
+      "multimodal"
+    ],
+    "all_tags": [
+      "1M-5M-tokens",
+      "benchmarking",
+      "image",
+      "image-chat",
+      "inference",
+      "long-context",
+      "medium",
+      "multi-turn",
+      "multimodal",
+      "n500",
+      "prefix-caching",
+      "synthetic",
+      "visual-analysis",
+      "wikipedia-images"
+    ]
+  },
+  "output_files": {
+    "aiperf_multi_turn": "image/data/multi_turn_image_chat.jsonl",
+    "aiperf_mooncake_trace": "image/data/multi_turn_image_chat_mooncake.jsonl",
+    "parquet": "image/data/multi_turn_image_chat.parquet"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 30,
+      "mean": 10.64,
+      "median": 9.0,
+      "stdev": 7.47,
+      "percentiles": {
+        "p5": 1.0,
+        "p25": 5.0,
+        "p50": 9.0,
+        "p75": 16.0,
+        "p95": 26.0,
+        "p99": 30.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-3.9",
+          "count": 100
+        },
+        {
+          "range": "3.9-6.8",
+          "count": 79
+        },
+        {
+          "range": "6.8-9.7",
+          "count": 85
+        },
+        {
+          "range": "9.7-12.6",
+          "count": 64
+        },
+        {
+          "range": "12.6-15.5",
+          "count": 36
+        },
+        {
+          "range": "15.5-18.4",
+          "count": 57
+        },
+        {
+          "range": "18.4-21.3",
+          "count": 33
+        },
+        {
+          "range": "21.3-24.2",
+          "count": 16
+        },
+        {
+          "range": "24.2-27.1",
+          "count": 11
+        },
+        {
+          "range": "27.1-30.0",
+          "count": 19
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 151,
+          "percentage": 30.2
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 213,
+          "percentage": 42.6
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 136,
+          "percentage": 27.2
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 0,
+          "percentage": 0.0
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 3016582,
+      "min": 213,
+      "max": 20315,
+      "mean": 6033.16,
+      "median": 5067.0,
+      "stdev": 4543.44,
+      "percentiles": {
+        "p5": 666.85,
+        "p25": 2216.75,
+        "p50": 5067.0,
+        "p75": 8972.25,
+        "p95": 15521.25,
+        "p99": 18608.36
+      },
+      "histogram": [
+        {
+          "range": "213.0-2223.2",
+          "count": 127
+        },
+        {
+          "range": "2223.2-4233.4",
+          "count": 85
+        },
+        {
+          "range": "4233.4-6243.6",
+          "count": 97
+        },
+        {
+          "range": "6243.6-8253.8",
+          "count": 53
+        },
+        {
+          "range": "8253.8-10264.0",
+          "count": 45
+        },
+        {
+          "range": "10264.0-12274.2",
+          "count": 37
+        },
+        {
+          "range": "12274.2-14284.4",
+          "count": 24
+        },
+        {
+          "range": "14284.4-16294.6",
+          "count": 15
+        },
+        {
+          "range": "16294.6-18304.8",
+          "count": 11
+        },
+        {
+          "range": "18304.8-20315.0",
+          "count": 6
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 12067109,
+      "min": 852,
+      "max": 81262,
+      "mean": 24134.22,
+      "median": 20270.5,
+      "stdev": 18173.76,
+      "percentiles": {
+        "p5": 2669.35,
+        "p25": 8867.0,
+        "p50": 20270.5,
+        "p75": 35891.0,
+        "p95": 62085.0,
+        "p99": 74436.43
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 61,
+      "mean": 22.28,
+      "median": 19.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 1.07,
+        "max": 67.34,
+        "mean": 12.63,
+        "median": 9.41
+      },
+      "first_turn_chars": {
+        "mean": 2511.64,
+        "median": 2231.0
+      },
+      "last_turn_chars": {
+        "mean": 25411.0,
+        "median": 21107.5
+      }
+    },
+    "category_distribution": {
+      "column": "conversation_type",
+      "distribution": [
+        {
+          "value": "image_description",
+          "count": 103,
+          "percentage": 20.6
+        },
+        {
+          "value": "visual_analysis",
+          "count": 90,
+          "percentage": 18.0
+        },
+        {
+          "value": "creative_interpretation",
+          "count": 84,
+          "percentage": 16.8
+        },
+        {
+          "value": "contextual_discussion",
+          "count": 73,
+          "percentage": 14.6
+        },
+        {
+          "value": "educational",
+          "count": 59,
+          "percentage": 11.8
+        },
+        {
+          "value": "technical_photography",
+          "count": 48,
+          "percentage": 9.6
+        },
+        {
+          "value": "comparison",
+          "count": 43,
+          "percentage": 8.6
+        }
+      ]
+    },
+    "multimodal_info": {
+      "image_topic_distribution": [
+        {
+          "value": "architecture",
+          "count": 57,
+          "percentage": 11.4
+        },
+        {
+          "value": "wildlife",
+          "count": 57,
+          "percentage": 11.4
+        },
+        {
+          "value": "art",
+          "count": 54,
+          "percentage": 10.8
+        },
+        {
+          "value": "culture",
+          "count": 51,
+          "percentage": 10.2
+        },
+        {
+          "value": "history",
+          "count": 51,
+          "percentage": 10.2
+        },
+        {
+          "value": "nature",
+          "count": 50,
+          "percentage": 10.0
+        },
+        {
+          "value": "food",
+          "count": 49,
+          "percentage": 9.8
+        },
+        {
+          "value": "science",
+          "count": 45,
+          "percentage": 9.0
+        },
+        {
+          "value": "technology",
+          "count": 43,
+          "percentage": 8.6
+        },
+        {
+          "value": "geography",
+          "count": 43,
+          "percentage": 8.6
+        }
+      ],
+      "unique_images": 141
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.5155,
+    "decode_score": 0.2987,
+    "total_payload_score": 0.4071,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.3016582,
+        "avg_context_size": 0.48268436000000003,
+        "multimodal_penalty": 0.75,
+        "context_growth": 1.0
+      },
+      "raw": {
+        "total_tokens": 3016582,
+        "avg_context_size": 24134.218,
+        "multimodal_penalty": 1.5,
+        "context_growth": 12.632070150193085
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.24132656,
+        "num_turns": 0.5321,
+        "avg_response_length": 0.21284,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 1206632.8,
+        "num_turns": 5321,
+        "avg_response_length": 10.642,
+        "tool_call_penalty": 0.0
+      }
+    }
+  }
+}

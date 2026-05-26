@@ -1,0 +1,83 @@
+dataset:
+  name: "multi-turn-mixed-chat"
+  version: "1.0.0"
+  description: "Mixed dataset combining text, pdf, image, reasoning, and agentic conversations for comprehensive benchmarking"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_mixed_chat.parquet"
+  seed: 42
+
+# Custom tags for dataset identification and filtering
+tags:
+  custom:
+    - "mixed-dataset"
+    - "multi-modal"
+    - "comprehensive"
+    - "payload-balanced"
+
+# Source dataset configurations
+# Each source dataset specifies:
+# - type: dataset type (text, pdf, image, reasoning, agentic, random, repeat)
+# - weight: relative weight for sampling (higher = more conversations from this source)
+# - path: path to the source parquet file (relative to project root)
+# - required: if true, this dataset must be available (error if missing)
+sources:
+  - type: "text"
+    weight: 0.25
+    path: "text/data/multi_turn_text_chat.parquet"
+    required: true
+
+  - type: "pdf"
+    weight: 0.20
+    path: "pdf/data/multi_turn_pdf_chat.parquet"
+    required: false  # Optional: skip if not available
+
+  - type: "image"
+    weight: 0.20
+    path: "image/data/multi_turn_image_chat.parquet"
+    required: false  # Optional: skip if not available
+
+  - type: "reasoning"
+    weight: 0.20
+    path: "reasoning/data/multi_turn_reasoning_chat.parquet"
+    required: true
+
+  - type: "agentic"
+    weight: 0.15
+    path: "agentic/data/multi_turn_agentic_task.parquet"
+    required: true
+
+# Payload scoring configuration
+# Used to compute prefill/decode effort scores for the mixed dataset
+payload_scoring:
+  enabled: true
+  # Weights for different factors in payload score calculation
+  weights:
+    prefill:
+      total_tokens: 0.4
+      avg_context_size: 0.3
+      multimodal_penalty: 0.2
+      context_growth: 0.1
+    decode:
+      total_response_tokens: 0.4
+      num_turns: 0.3
+      avg_response_length: 0.2
+      tool_call_penalty: 0.1
+  # Balance between prefill and decode scores (0.0 = decode-only, 1.0 = prefill-only)
+  prefill_decode_balance: 0.5
+
+# Sampling strategy
+sampling:
+  strategy: "weighted"  # Options: "weighted" (proportional to weights), "equal" (equal from each available source)
+  # For weighted strategy, normalize weights if some sources are unavailable
+  normalize_weights: true
+  # Random seed for reproducible sampling
+  seed: 42
+
+# Output format configuration
+# The mixed dataset will standardize schemas across different source types
+output:
+  # Whether to add a 'source_dataset' column to track which dataset each conversation came from
+  add_source_column: true
+  # How to handle schema differences between datasets
+  schema_handling: "union"  # Options: "union" (include all columns from all datasets), "intersection" (only common columns)

@@ -2,7 +2,7 @@
 """
 Shared module for dataset tagging, naming, and distribution profiling.
 
-Provides three capabilities used by all generators:
+Provides four capabilities used by all generators:
 
 1. **Tagging** - Attach descriptive metadata tags (both user-defined and
    auto-generated) to every dataset.
@@ -11,6 +11,8 @@ Provides three capabilities used by all generators:
 3. **Distribution Profile** - Compute a comprehensive statistical summary
    (histograms, percentiles, distributions) and write it as a sidecar JSON
    manifest alongside the generated data files.
+4. **Payload Scoring** - Calculate multi-dimensional payload scores representing
+   prefill and decode effort for benchmarking comparisons.
 """
 
 import json
@@ -408,6 +410,179 @@ def _multimodal_profile(df: pd.DataFrame, dataset_type: str) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Payload Scoring
+# ---------------------------------------------------------------------------
+
+
+def compute_payload_score(
+    df: pd.DataFrame,
+    dataset_type: str,
+    config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Compute multi-dimensional payload scores for a dataset.
+
+    Payload scores represent the computational effort required for:
+    - **Prefill**: Processing the input context (tokens, multimodal content)
+    - **Decode**: Generating responses (output tokens, tool calls)
+
+    Returns a dict with:
+        - prefill_score: Normalized score representing prefill effort
+        - decode_score: Normalized score representing decode effort
+        - total_payload_score: Combined score
+        - breakdown: Detailed factors contributing to each score
+    """
+    if config is None:
+        config = {}
+
+    # Initialize score components
+    prefill_factors = {
+        "total_tokens": 0.0,
+        "avg_context_size": 0.0,
+        "multimodal_penalty": 0.0,
+        "context_growth": 0.0,
+    }
+
+    decode_factors = {
+        "total_response_tokens": 0.0,
+        "num_turns": 0.0,
+        "avg_response_length": 0.0,
+        "tool_call_penalty": 0.0,
+    }
+
+    # Calculate factors from the dataset
+    if "estimated_tokens" in df.columns:
+        total_tokens = int(df["estimated_tokens"].sum())
+        prefill_factors["total_tokens"] = total_tokens
+
+    if "total_characters" in df.columns:
+        # Approximate token count from characters (4 chars ~= 1 token)
+        total_chars = int(df["total_characters"].sum())
+        prefill_factors["avg_context_size"] = total_chars / len(df) if len(df) > 0 else 0
+
+    if "num_turns" in df.columns:
+        turns = df["num_turns"].tolist()
+        decode_factors["num_turns"] = sum(turns)
+        decode_factors["avg_response_length"] = statistics.mean(turns) if turns else 0
+
+    # Context growth analysis
+    if "cumulative_char_lengths" in df.columns:
+        growth_rates = []
+        for _, row in df.iterrows():
+            lengths = json.loads(row["cumulative_char_lengths"])
+            if len(lengths) >= 2:
+                growth_rates.append(lengths[-1] / lengths[0] if lengths[0] > 0 else 0)
+        if growth_rates:
+            prefill_factors["context_growth"] = statistics.mean(growth_rates)
+
+    # Multimodal penalty (PDF and Image datasets have higher prefill cost)
+    if dataset_type in ("pdf", "image"):
+        prefill_factors["multimodal_penalty"] = 1.5  # 50% penalty for multimodal
+
+    # Tool call penalty (agentic datasets have higher decode cost)
+    if dataset_type == "agentic" and "num_tool_calls" in df.columns:
+        tool_calls = int(df["num_tool_calls"].sum())
+        decode_factors["tool_call_penalty"] = tool_calls * 0.1  # Each tool call adds 10% cost
+
+    # Estimate response tokens (roughly half of total tokens are responses)
+    if "estimated_tokens" in df.columns:
+        total_tokens = int(df["estimated_tokens"].sum())
+        decode_factors["total_response_tokens"] = total_tokens * 0.4  # Assume 40% are response tokens
+
+    # Normalize factors to [0, 1] range (using reasonable max values as reference)
+    # These reference values can be adjusted based on typical dataset scales
+    prefill_normalized = _normalize_payload_factors(
+        prefill_factors,
+        {
+            "total_tokens": 10_000_000,  # 10M tokens as reference max
+            "avg_context_size": 50_000,  # 50K chars as reference max
+            "multimodal_penalty": 2.0,  # Max penalty
+            "context_growth": 10.0,  # 10x growth as reference max
+        }
+    )
+
+    decode_normalized = _normalize_payload_factors(
+        decode_factors,
+        {
+            "total_response_tokens": 5_000_000,  # 5M response tokens as reference max
+            "num_turns": 10_000,  # 10K total turns as reference max
+            "avg_response_length": 50,  # 50 turns as reference max
+            "tool_call_penalty": 10.0,  # Max tool call penalty
+        }
+    )
+
+    # Calculate weighted scores (weights can be customized in config)
+    weights = config.get("payload_weights", {
+        "prefill": {
+            "total_tokens": 0.4,
+            "avg_context_size": 0.3,
+            "multimodal_penalty": 0.2,
+            "context_growth": 0.1,
+        },
+        "decode": {
+            "total_response_tokens": 0.4,
+            "num_turns": 0.3,
+            "avg_response_length": 0.2,
+            "tool_call_penalty": 0.1,
+        }
+    })
+
+    prefill_score = sum(
+        prefill_normalized[k] * weights["prefill"].get(k, 0.25)
+        for k in prefill_normalized
+    )
+
+    decode_score = sum(
+        decode_normalized[k] * weights["decode"].get(k, 0.25)
+        for k in decode_normalized
+    )
+
+    # Combined score (can be weighted differently based on use case)
+    prefill_weight = config.get("prefill_decode_balance", 0.5)  # Default: equal weight
+    total_payload_score = prefill_score * prefill_weight + decode_score * (1 - prefill_weight)
+
+    return {
+        "prefill_score": round(prefill_score, 4),
+        "decode_score": round(decode_score, 4),
+        "total_payload_score": round(total_payload_score, 4),
+        "prefill_breakdown": {
+            "normalized": prefill_normalized,
+            "raw": prefill_factors,
+        },
+        "decode_breakdown": {
+            "normalized": decode_normalized,
+            "raw": decode_factors,
+        },
+    }
+
+
+def _normalize_payload_factors(
+    factors: Dict[str, float],
+    reference_max: Dict[str, float],
+) -> Dict[str, float]:
+    """Normalize payload factors to [0, 1] range using reference max values."""
+    normalized = {}
+    for key, value in factors.items():
+        ref_max = reference_max.get(key, 1.0)
+        if ref_max > 0:
+            normalized[key] = min(value / ref_max, 1.0)
+        else:
+            normalized[key] = 0.0
+    return normalized
+
+
+def add_payload_scores_to_manifest(
+    manifest: Dict[str, Any],
+    df: pd.DataFrame,
+    dataset_type: str,
+    config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Add payload scores to an existing manifest."""
+    payload_scores = compute_payload_score(df, dataset_type, config)
+    manifest["payload_scores"] = payload_scores
+    return manifest
+
+
+# ---------------------------------------------------------------------------
 # Manifest Generation
 # ---------------------------------------------------------------------------
 
@@ -420,6 +595,7 @@ def build_manifest(
     output_files: Dict[str, str],
     descriptive_name: str,
     extra_tags: Optional[List[str]] = None,
+    include_payload_scores: bool = True,
 ) -> Dict[str, Any]:
     """Build the complete dataset manifest combining tags, profile, and metadata.
 
@@ -446,6 +622,11 @@ def build_manifest(
         "output_files": output_files,
         "distribution_profile": profile,
     }
+
+    # Add payload scores if requested
+    if include_payload_scores:
+        manifest = add_payload_scores_to_manifest(manifest, df, dataset_type, config)
+
     return manifest
 
 
@@ -519,5 +700,13 @@ def print_profile_summary(manifest: Dict[str, Any]) -> None:
         print(f"\n  Output Files:")
         for fmt, path in files.items():
             print(f"    [{fmt}] {path}")
+
+    # Print payload scores if available
+    if "payload_scores" in manifest:
+        ps = manifest["payload_scores"]
+        print(f"\n  Payload Scores:")
+        print(f"    Prefill Score:  {ps['prefill_score']:.4f}")
+        print(f"    Decode Score:   {ps['decode_score']:.4f}")
+        print(f"    Total Payload:  {ps['total_payload_score']:.4f}")
 
     print(f"\n{'='*70}\n")

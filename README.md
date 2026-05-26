@@ -13,6 +13,139 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 | **agentic/** | Available | Agent task execution with tool-use and success metrics |
 | **random/** | Available | Random/gibberish text multi-turn conversations |
 | **repeat/** | Available | Repetitive text multi-turn conversations |
+| **mixed/** | Available | Mixed dataset combining multiple source types with configurable weights |
+
+## Mixed Dataset
+
+The mixed dataset generator allows you to create comprehensive benchmarking datasets by combining conversations from multiple source types (text, pdf, image, reasoning, agentic, random, repeat) based on configurable weights.
+
+### Quick Start
+
+```bash
+# Generate a mixed dataset with default configuration
+python mixed/generate.py
+
+# Generate with custom conversation count
+python mixed/generate.py --num 1000
+
+# Generate with custom seed for reproducibility
+python mixed/generate.py --seed 123
+```
+
+### Configuration
+
+Edit `mixed/config.yaml` to customize:
+
+- **Source weights**: Relative contribution of each dataset type
+- **Required sources**: Which datasets must be available (error if missing)
+- **Sampling strategy**: Weighted (proportional) or equal distribution
+- **Schema handling**: Union (all columns) or intersection (common columns only)
+
+Example configuration:
+```yaml
+sources:
+  - type: "text"
+    weight: 0.25
+    path: "text/data/multi_turn_text_chat.parquet"
+    required: true
+
+  - type: "reasoning"
+    weight: 0.30
+    path: "reasoning/data/multi_turn_reasoning_chat.parquet"
+    required: true
+
+  - type: "agentic"
+    weight: 0.20
+    path: "agentic/data/multi_turn_agentic_task.parquet"
+    required: true
+
+  - type: "pdf"
+    weight: 0.15
+    path: "pdf/data/multi_turn_pdf_chat.parquet"
+    required: false  # Optional: skip if not available
+```
+
+### Output
+
+The mixed dataset includes a `source_dataset` column that tracks which source dataset each conversation came from, enabling analysis by dataset type.
+
+## Payload Scoring
+
+Every dataset now includes **payload scores** that quantify the computational effort required for inference:
+
+- **Prefill Score**: Effort to process input context (tokens, multimodal content, context growth)
+- **Decode Score**: Effort to generate responses (output tokens, turns, tool calls)
+- **Total Payload Score**: Combined score for overall effort
+
+### Using Payload Scores
+
+Payload scores are automatically computed and included in the dataset manifest:
+
+```python
+import json
+
+# Load manifest
+with open("text/data/multi_turn_text_chat_manifest.json", "r") as f:
+    manifest = json.load(f)
+
+# Access payload scores
+payload = manifest["payload_scores"]
+print(f"Prefill Score:  {payload['prefill_score']:.4f}")
+print(f"Decode Score:   {payload['decode_score']:.4f}")
+print(f"Total Payload:  {payload['total_payload_score']:.4f}")
+```
+
+### Creating Payload-Balanced Datasets
+
+Use payload scores to create datasets with identical computational effort:
+
+```python
+from dataset_profile import compute_payload_score
+import pandas as pd
+
+# Load datasets
+text_df = pd.read_parquet("text/data/multi_turn_text_chat.parquet")
+reasoning_df = pd.read_parquet("reasoning/data/multi_turn_reasoning_chat.parquet")
+
+# Compute payload scores
+text_payload = compute_payload_score(text_df, "text")
+reasoning_payload = compute_payload_score(reasoning_df, "reasoning")
+
+print(f"Text payload: {text_payload['total_payload_score']:.4f}")
+print(f"Reasoning payload: {reasoning_payload['total_payload_score']:.4f}")
+
+# Sample to achieve target payload score
+target_score = 0.3
+# Adjust sample sizes to match target score
+```
+
+### Payload Score Factors
+
+Prefill score considers:
+- Total tokens (higher = more prefill work)
+- Average context size per conversation
+- Multimodal penalty (PDF/image datasets have higher cost)
+- Context growth rate (faster growth = more prefill over time)
+
+Decode score considers:
+- Total response tokens
+- Number of turns
+- Average response length
+- Tool call penalty (agentic datasets have higher cost)
+
+### Adding Payload Scores to Existing Datasets
+
+If you have existing datasets that were generated before payload scoring was added, you can regenerate their manifests to include payload scores without regenerating the data:
+
+```bash
+# Regenerate manifests for specific datasets
+python regenerate_manifests.py text reasoning agentic
+
+# Regenerate manifests for all datasets
+python regenerate_manifests.py --all
+```
+
+This will update the manifest JSON files to include the new `payload_scores` section while leaving the actual data files unchanged.
 
 ## Examples and Usage
 

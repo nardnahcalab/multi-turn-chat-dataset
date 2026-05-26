@@ -1,14 +1,14 @@
 {
   "manifest_version": "1.0.0",
-  "generated_at": "2026-04-29T17:18:21.108287+00:00",
+  "generated_at": "2026-05-26T22:48:58.785732+00:00",
   "dataset": {
     "name": "multi-turn-text-chat",
-    "descriptive_name": "multi_turn_text_chat_n500_s42_v1.0.0_20260429",
+    "descriptive_name": "multi_turn_text_chat_n10_s123_v1.0.0_20260526",
     "type": "text",
     "version": "1.0.0",
     "description": "Synthetic multi-turn text conversations for benchmarking inference with prefix caching",
-    "num_conversations": 500,
-    "seed": 42
+    "num_conversations": 10,
+    "seed": 123
   },
   "tags": {
     "user_tags": [
@@ -23,21 +23,21 @@
       "inference",
       "prefix-caching",
       "text",
-      "medium",
-      "n500",
-      "1M-5M-tokens",
+      "small",
+      "n10",
+      "sub-1M-tokens",
       "very-long-context"
     ],
     "all_tags": [
-      "1M-5M-tokens",
       "benchmarking",
       "conversational",
       "inference",
       "kv-cache-benchmark",
-      "medium",
       "multi-turn",
-      "n500",
+      "n10",
       "prefix-caching",
+      "small",
+      "sub-1M-tokens",
       "synthetic",
       "text",
       "text-only",
@@ -45,182 +45,184 @@
     ]
   },
   "output_files": {
-    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat.parquet"
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat.parquet",
+    "aiperf_multi_turn": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat.jsonl",
+    "mooncake_trace": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat_mooncake.jsonl"
   },
   "distribution_profile": {
     "turn_distribution": {
-      "min": 1,
-      "max": 50,
-      "mean": 18.81,
-      "median": 15.5,
-      "stdev": 13.73,
+      "min": 4,
+      "max": 31,
+      "mean": 20.7,
+      "median": 20.5,
+      "stdev": 8.1,
       "percentiles": {
-        "p5": 2.0,
-        "p25": 8.0,
-        "p50": 15.5,
-        "p75": 28.0,
-        "p95": 46.0,
-        "p99": 49.0
+        "p5": 8.5,
+        "p25": 17.25,
+        "p50": 20.5,
+        "p75": 27.5,
+        "p95": 29.65,
+        "p99": 30.73
       },
       "histogram": [
         {
-          "range": "1.0-5.9",
-          "count": 100
+          "range": "4.0-6.7",
+          "count": 1
         },
         {
-          "range": "5.9-10.8",
-          "count": 71
+          "range": "6.7-9.4",
+          "count": 0
         },
         {
-          "range": "10.8-15.7",
-          "count": 79
+          "range": "9.4-12.1",
+          "count": 0
         },
         {
-          "range": "15.7-20.6",
-          "count": 51
+          "range": "12.1-14.8",
+          "count": 1
         },
         {
-          "range": "20.6-25.5",
-          "count": 54
+          "range": "14.8-17.5",
+          "count": 1
         },
         {
-          "range": "25.5-30.4",
-          "count": 45
+          "range": "17.5-20.2",
+          "count": 2
         },
         {
-          "range": "30.4-35.3",
-          "count": 27
+          "range": "20.2-22.9",
+          "count": 1
         },
         {
-          "range": "35.3-40.2",
-          "count": 21
+          "range": "22.9-25.6",
+          "count": 0
         },
         {
-          "range": "40.2-45.1",
-          "count": 23
+          "range": "25.6-28.3",
+          "count": 3
         },
         {
-          "range": "45.1-50.0",
-          "count": 29
+          "range": "28.3-31.0",
+          "count": 1
         }
       ],
       "bucket_distribution": [
         {
           "bucket": "short (1-5)",
-          "count": 100,
-          "percentage": 20.0
+          "count": 1,
+          "percentage": 10.0
         },
         {
           "bucket": "medium (6-15)",
-          "count": 150,
-          "percentage": 30.0
+          "count": 1,
+          "percentage": 10.0
         },
         {
           "bucket": "long (16-30)",
-          "count": 150,
-          "percentage": 30.0
+          "count": 7,
+          "percentage": 70.0
         },
         {
           "bucket": "very_long (31+)",
-          "count": 100,
-          "percentage": 20.0
+          "count": 1,
+          "percentage": 10.0
         }
       ]
     },
     "token_distribution": {
-      "total": 3945154,
-      "min": 86,
-      "max": 25797,
-      "mean": 7890.31,
-      "median": 6148.5,
-      "stdev": 6497.44,
+      "total": 88844,
+      "min": 1151,
+      "max": 14203,
+      "mean": 8884.4,
+      "median": 8750.5,
+      "stdev": 4146.58,
       "percentiles": {
-        "p5": 536.0,
-        "p25": 2394.5,
-        "p50": 6148.5,
-        "p75": 12192.25,
-        "p95": 20994.0,
-        "p99": 23954.47
+        "p5": 2787.65,
+        "p25": 6728.5,
+        "p50": 8750.5,
+        "p75": 11815.0,
+        "p95": 14080.6,
+        "p99": 14178.52
       },
       "histogram": [
         {
-          "range": "86.0-2657.1",
-          "count": 138
+          "range": "1151.0-2456.2",
+          "count": 1
         },
         {
-          "range": "2657.1-5228.2",
-          "count": 85
+          "range": "2456.2-3761.4",
+          "count": 0
         },
         {
-          "range": "5228.2-7799.3",
-          "count": 77
+          "range": "3761.4-5066.6",
+          "count": 1
         },
         {
-          "range": "7799.3-10370.4",
-          "count": 46
+          "range": "5066.6-6371.8",
+          "count": 0
         },
         {
-          "range": "10370.4-12941.5",
-          "count": 44
+          "range": "6371.8-7677.0",
+          "count": 2
         },
         {
-          "range": "12941.5-15512.6",
-          "count": 35
+          "range": "7677.0-8982.2",
+          "count": 1
         },
         {
-          "range": "15512.6-18083.7",
-          "count": 22
+          "range": "8982.2-10287.4",
+          "count": 1
         },
         {
-          "range": "18083.7-20654.8",
-          "count": 24
+          "range": "10287.4-11592.6",
+          "count": 1
         },
         {
-          "range": "20654.8-23225.9",
-          "count": 19
+          "range": "11592.6-12897.8",
+          "count": 1
         },
         {
-          "range": "23225.9-25797.0",
-          "count": 10
+          "range": "12897.8-14203.0",
+          "count": 2
         }
       ]
     },
     "character_distribution": {
-      "total": 15781321,
-      "min": 345,
-      "max": 103188,
-      "mean": 31562.64,
-      "median": 24595.5,
-      "stdev": 25989.74,
+      "total": 355390,
+      "min": 4607,
+      "max": 56814,
+      "mean": 35539,
+      "median": 35002.0,
+      "stdev": 16585.82,
       "percentiles": {
-        "p5": 2144.15,
-        "p25": 9580.25,
-        "p50": 24595.5,
-        "p75": 48772.0,
-        "p95": 83976.1,
-        "p99": 95819.88
+        "p5": 11152.7,
+        "p25": 26916.75,
+        "p50": 35002.0,
+        "p75": 47261.75,
+        "p95": 56323.5,
+        "p99": 56715.9
       }
     },
     "message_count_distribution": {
-      "min": 3,
-      "max": 101,
-      "mean": 38.61,
-      "median": 32.0
+      "min": 9,
+      "max": 63,
+      "mean": 42.4,
+      "median": 42.0
     },
     "context_growth": {
       "growth_ratio": {
-        "min": 1.09,
-        "max": 254.47,
-        "mean": 31.55,
-        "median": 20.23
+        "min": 5.22,
+        "max": 93.91,
+        "mean": 41.16,
+        "median": 36.8
       },
       "first_turn_chars": {
-        "mean": 1497.04,
-        "median": 1257.5
+        "mean": 1042.2,
+        "median": 1015.0
       },
       "last_turn_chars": {
-        "mean": 32935.1,
-        "median": 25743.0
+        "mean": 35539,
+        "median": 35002.0
       }
     },
     "category_distribution": {
@@ -228,45 +230,73 @@
       "distribution": [
         {
           "value": "coding_help",
-          "count": 102,
-          "percentage": 20.4
-        },
-        {
-          "value": "customer_support",
-          "count": 86,
-          "percentage": 17.2
+          "count": 3,
+          "percentage": 30.0
         },
         {
           "value": "tutoring",
-          "count": 70,
-          "percentage": 14.0
+          "count": 2,
+          "percentage": 20.0
         },
         {
           "value": "health_fitness",
-          "count": 56,
-          "percentage": 11.2
+          "count": 1,
+          "percentage": 10.0
         },
         {
-          "value": "business_strategy",
-          "count": 52,
-          "percentage": 10.4
-        },
-        {
-          "value": "data_analysis",
-          "count": 45,
-          "percentage": 9.0
-        },
-        {
-          "value": "travel_planning",
-          "count": 45,
-          "percentage": 9.0
+          "value": "customer_support",
+          "count": 1,
+          "percentage": 10.0
         },
         {
           "value": "creative_writing",
-          "count": 44,
-          "percentage": 8.8
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "value": "data_analysis",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "value": "business_strategy",
+          "count": 1,
+          "percentage": 10.0
         }
       ]
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.3168,
+    "decode_score": 0.0919,
+    "total_payload_score": 0.2043,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.0088844,
+        "avg_context_size": 0.71078,
+        "multimodal_penalty": 0.0,
+        "context_growth": 1.0
+      },
+      "raw": {
+        "total_tokens": 88844,
+        "avg_context_size": 35539.0,
+        "multimodal_penalty": 0.0,
+        "context_growth": 41.155355108498235
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.00710752,
+        "num_turns": 0.0207,
+        "avg_response_length": 0.414,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 35537.6,
+        "num_turns": 207,
+        "avg_response_length": 20.7,
+        "tool_call_penalty": 0.0
+      }
     }
   }
 }

@@ -1,0 +1,297 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-05-26T22:50:37.064616+00:00",
+  "dataset": {
+    "name": "multi-turn-repeat-chat",
+    "descriptive_name": "multi_turn_repeat",
+    "type": "repeat",
+    "version": "1.0.0",
+    "description": "Synthetic multi-turn repetitive-text conversations for benchmarking inference with highly compressible content",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "repetitive",
+      "compressible",
+      "cache-stress-test",
+      "deduplication"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "repeat",
+      "medium",
+      "n500",
+      "1M-5M-tokens",
+      "very-long-context",
+      "repetitive",
+      "cache-stress"
+    ],
+    "all_tags": [
+      "1M-5M-tokens",
+      "benchmarking",
+      "cache-stress",
+      "cache-stress-test",
+      "compressible",
+      "deduplication",
+      "inference",
+      "medium",
+      "multi-turn",
+      "n500",
+      "prefix-caching",
+      "repeat",
+      "repetitive",
+      "synthetic",
+      "very-long-context"
+    ]
+  },
+  "output_files": {
+    "aiperf_multi_turn": "repeat/data/multi_turn_repeat_chat.jsonl",
+    "aiperf_mooncake_trace": "repeat/data/multi_turn_repeat_chat_mooncake.jsonl",
+    "parquet": "repeat/data/multi_turn_repeat_chat.parquet"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 50,
+      "mean": 18.6,
+      "median": 15.5,
+      "stdev": 13.3,
+      "percentiles": {
+        "p5": 2.0,
+        "p25": 7.0,
+        "p50": 15.5,
+        "p75": 28.0,
+        "p95": 45.0,
+        "p99": 48.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-5.9",
+          "count": 100
+        },
+        {
+          "range": "5.9-10.8",
+          "count": 73
+        },
+        {
+          "range": "10.8-15.7",
+          "count": 77
+        },
+        {
+          "range": "15.7-20.6",
+          "count": 59
+        },
+        {
+          "range": "20.6-25.5",
+          "count": 42
+        },
+        {
+          "range": "25.5-30.4",
+          "count": 49
+        },
+        {
+          "range": "30.4-35.3",
+          "count": 33
+        },
+        {
+          "range": "35.3-40.2",
+          "count": 19
+        },
+        {
+          "range": "40.2-45.1",
+          "count": 26
+        },
+        {
+          "range": "45.1-50.0",
+          "count": 22
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 100,
+          "percentage": 20.0
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 150,
+          "percentage": 30.0
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 150,
+          "percentage": 30.0
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 100,
+          "percentage": 20.0
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 4789638,
+      "min": 113,
+      "max": 32633,
+      "mean": 9579.28,
+      "median": 7684.0,
+      "stdev": 7705.81,
+      "percentiles": {
+        "p5": 708.0,
+        "p25": 3132.0,
+        "p50": 7684.0,
+        "p75": 14672.75,
+        "p95": 24772.75,
+        "p99": 28200.65
+      },
+      "histogram": [
+        {
+          "range": "113.0-3365.0",
+          "count": 131
+        },
+        {
+          "range": "3365.0-6617.0",
+          "count": 94
+        },
+        {
+          "range": "6617.0-9869.0",
+          "count": 74
+        },
+        {
+          "range": "9869.0-13121.0",
+          "count": 49
+        },
+        {
+          "range": "13121.0-16373.0",
+          "count": 56
+        },
+        {
+          "range": "16373.0-19625.0",
+          "count": 26
+        },
+        {
+          "range": "19625.0-22877.0",
+          "count": 26
+        },
+        {
+          "range": "22877.0-26129.0",
+          "count": 25
+        },
+        {
+          "range": "26129.0-29381.0",
+          "count": 16
+        },
+        {
+          "range": "29381.0-32633.0",
+          "count": 3
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 19159301,
+      "min": 452,
+      "max": 130535,
+      "mean": 38318.6,
+      "median": 30736.5,
+      "stdev": 30823.28,
+      "percentiles": {
+        "p5": 2835.0,
+        "p25": 12529.5,
+        "p50": 30736.5,
+        "p75": 58691.75,
+        "p95": 99093.05,
+        "p99": 112805.6
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 101,
+      "mean": 38.2,
+      "median": 32.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 1.34,
+        "max": 212.94,
+        "mean": 29.65,
+        "median": 20.18
+      },
+      "first_turn_chars": {
+        "mean": 1777.46,
+        "median": 1489
+      },
+      "last_turn_chars": {
+        "mean": 39615.09,
+        "median": 31672
+      }
+    },
+    "category_distribution": {
+      "column": "topic",
+      "distribution": [
+        {
+          "value": "single_word",
+          "count": 126,
+          "percentage": 25.2
+        },
+        {
+          "value": "sentence_repeat",
+          "count": 103,
+          "percentage": 20.6
+        },
+        {
+          "value": "counting_repeat",
+          "count": 97,
+          "percentage": 19.4
+        },
+        {
+          "value": "phrase_repeat",
+          "count": 95,
+          "percentage": 19.0
+        },
+        {
+          "value": "letter_repeat",
+          "count": 79,
+          "percentage": 15.8
+        }
+      ]
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.5215,
+    "decode_score": 0.5067,
+    "total_payload_score": 0.5141,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.4789638,
+        "avg_context_size": 0.76637204,
+        "multimodal_penalty": 0.0,
+        "context_growth": 1.0
+      },
+      "raw": {
+        "total_tokens": 4789638,
+        "avg_context_size": 38318.602,
+        "multimodal_penalty": 0.0,
+        "context_growth": 29.650552635973252
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.38317104,
+        "num_turns": 0.9301,
+        "avg_response_length": 0.37204,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 1915855.2000000002,
+        "num_turns": 9301,
+        "avg_response_length": 18.602,
+        "tool_call_penalty": 0.0
+      }
+    }
+  }
+}

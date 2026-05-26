@@ -1,9 +1,9 @@
 {
   "manifest_version": "1.0.0",
-  "generated_at": "2026-04-29T17:18:34.356544+00:00",
+  "generated_at": "2026-05-26T22:50:36.306925+00:00",
   "dataset": {
     "name": "multi-turn-agentic-task",
-    "descriptive_name": "multi_turn_agentic_task_n500_s42_v1.0.0_20260429",
+    "descriptive_name": "multi_turn_agentic_task",
     "type": "agentic",
     "version": "1.0.0",
     "description": "Synthetic multi-turn agentic task dataset for benchmarking agent performance with tool-use and success metrics",
@@ -50,7 +50,9 @@
     ]
   },
   "output_files": {
-    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/agentic/data/multi_turn_agentic_task.parquet"
+    "aiperf_multi_turn": "agentic/data/multi_turn_agentic_task.jsonl",
+    "aiperf_mooncake_trace": "agentic/data/multi_turn_agentic_task_mooncake.jsonl",
+    "parquet": "agentic/data/multi_turn_agentic_task.parquet"
   },
   "distribution_profile": {
     "turn_distribution": {
@@ -300,6 +302,39 @@
       "errors": {
         "total": 756,
         "error_rate": 16.03
+      }
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.1132,
+    "decode_score": 0.2423,
+    "total_payload_score": 0.1777,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.0191641,
+        "avg_context_size": 0.030692840000000002,
+        "multimodal_penalty": 0.0,
+        "context_growth": 0.9629959963330871
+      },
+      "raw": {
+        "total_tokens": 191641,
+        "avg_context_size": 1534.642,
+        "multimodal_penalty": 0.0,
+        "context_growth": 9.62995996333087
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.015331280000000001,
+        "num_turns": 0.3584,
+        "avg_response_length": 0.14336000000000002,
+        "tool_call_penalty": 1.0
+      },
+      "raw": {
+        "total_response_tokens": 76656.40000000001,
+        "num_turns": 3584,
+        "avg_response_length": 7.168,
+        "tool_call_penalty": 471.6
       }
     }
   }

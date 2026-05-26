@@ -1,0 +1,296 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-05-26T22:50:36.779051+00:00",
+  "dataset": {
+    "name": "multi-turn-random-chat",
+    "descriptive_name": "multi_turn_random",
+    "type": "random",
+    "version": "1.0.0",
+    "description": "Synthetic multi-turn random-text conversations for benchmarking inference",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "baseline",
+      "random-text",
+      "gibberish",
+      "cache-baseline"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "random",
+      "medium",
+      "n500",
+      "5M+-tokens",
+      "very-long-context",
+      "baseline",
+      "gibberish"
+    ],
+    "all_tags": [
+      "5M+-tokens",
+      "baseline",
+      "benchmarking",
+      "cache-baseline",
+      "gibberish",
+      "inference",
+      "medium",
+      "multi-turn",
+      "n500",
+      "prefix-caching",
+      "random",
+      "random-text",
+      "synthetic",
+      "very-long-context"
+    ]
+  },
+  "output_files": {
+    "aiperf_multi_turn": "random/data/multi_turn_random_chat.jsonl",
+    "aiperf_mooncake_trace": "random/data/multi_turn_random_chat_mooncake.jsonl",
+    "parquet": "random/data/multi_turn_random_chat.parquet"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 50,
+      "mean": 19.07,
+      "median": 15.5,
+      "stdev": 13.58,
+      "percentiles": {
+        "p5": 2.0,
+        "p25": 7.0,
+        "p50": 15.5,
+        "p75": 28.25,
+        "p95": 45.0,
+        "p99": 49.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-5.9",
+          "count": 100
+        },
+        {
+          "range": "5.9-10.8",
+          "count": 67
+        },
+        {
+          "range": "10.8-15.7",
+          "count": 83
+        },
+        {
+          "range": "15.7-20.6",
+          "count": 40
+        },
+        {
+          "range": "20.6-25.5",
+          "count": 54
+        },
+        {
+          "range": "25.5-30.4",
+          "count": 56
+        },
+        {
+          "range": "30.4-35.3",
+          "count": 20
+        },
+        {
+          "range": "35.3-40.2",
+          "count": 30
+        },
+        {
+          "range": "40.2-45.1",
+          "count": 28
+        },
+        {
+          "range": "45.1-50.0",
+          "count": 22
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 100,
+          "percentage": 20.0
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 150,
+          "percentage": 30.0
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 150,
+          "percentage": 30.0
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 100,
+          "percentage": 20.0
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 5060456,
+      "min": 111,
+      "max": 33227,
+      "mean": 10120.91,
+      "median": 7960.0,
+      "stdev": 8110.09,
+      "percentiles": {
+        "p5": 727.65,
+        "p25": 3329.25,
+        "p50": 7960.0,
+        "p75": 15532.75,
+        "p95": 26259.25,
+        "p99": 30241.69
+      },
+      "histogram": [
+        {
+          "range": "111.0-3422.6",
+          "count": 128
+        },
+        {
+          "range": "3422.6-6734.2",
+          "count": 93
+        },
+        {
+          "range": "6734.2-10045.8",
+          "count": 69
+        },
+        {
+          "range": "10045.8-13357.4",
+          "count": 57
+        },
+        {
+          "range": "13357.4-16669.0",
+          "count": 39
+        },
+        {
+          "range": "16669.0-19980.6",
+          "count": 41
+        },
+        {
+          "range": "19980.6-23292.2",
+          "count": 27
+        },
+        {
+          "range": "23292.2-26603.8",
+          "count": 22
+        },
+        {
+          "range": "26603.8-29915.4",
+          "count": 18
+        },
+        {
+          "range": "29915.4-33227.0",
+          "count": 6
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 20242582,
+      "min": 446,
+      "max": 132910,
+      "mean": 40485.16,
+      "median": 31841.5,
+      "stdev": 32440.31,
+      "percentiles": {
+        "p5": 2913.6,
+        "p25": 13319.25,
+        "p50": 31841.5,
+        "p75": 62131.75,
+        "p95": 105037.95,
+        "p99": 120967.76
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 101,
+      "mean": 39.13,
+      "median": 32.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 1.09,
+        "max": 339.06,
+        "mean": 41.1,
+        "median": 25.38
+      },
+      "first_turn_chars": {
+        "mean": 1631.62,
+        "median": 1344
+      },
+      "last_turn_chars": {
+        "mean": 41686.9,
+        "median": 32660
+      }
+    },
+    "category_distribution": {
+      "column": "topic",
+      "distribution": [
+        {
+          "value": "random_words",
+          "count": 134,
+          "percentage": 26.8
+        },
+        {
+          "value": "random_sentences",
+          "count": 123,
+          "percentage": 24.6
+        },
+        {
+          "value": "random_chars",
+          "count": 97,
+          "percentage": 19.4
+        },
+        {
+          "value": "random_lorem",
+          "count": 80,
+          "percentage": 16.0
+        },
+        {
+          "value": "random_mixed",
+          "count": 66,
+          "percentage": 13.2
+        }
+      ]
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.5453,
+    "decode_score": 0.5242,
+    "total_payload_score": 0.5348,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.5060456,
+        "avg_context_size": 0.8097032799999999,
+        "multimodal_penalty": 0.0,
+        "context_growth": 1.0
+      },
+      "raw": {
+        "total_tokens": 5060456,
+        "avg_context_size": 40485.164,
+        "multimodal_penalty": 0.0,
+        "context_growth": 41.1047375440387
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.40483648000000005,
+        "num_turns": 0.9533,
+        "avg_response_length": 0.38132,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 2024182.4000000001,
+        "num_turns": 9533,
+        "avg_response_length": 19.066,
+        "tool_call_penalty": 0.0
+      }
+    }
+  }
+}
