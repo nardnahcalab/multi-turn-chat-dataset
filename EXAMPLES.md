@@ -17,6 +17,10 @@ python examples/01_load_and_inspect.py text
 python examples/02_analyze_conversations.py text
 python examples/03_prepare_for_benchmarking.py --dataset text
 python examples/04_agentic_analysis.py
+
+# New examples for mixed datasets and payload scoring
+python mixed/generate.py --num 100
+python examples/06_payload_score_comparison.py --datasets text reasoning agentic
 ```
 
 ---
@@ -399,6 +403,262 @@ code_generation          7.3          10.5         1.6          0.70
 research_synthesis       7.0          9.2          1.3          0.72
 planning_execution       7.2          9.9          1.5          0.71
 ```
+
+---
+
+## Example 5: Mixed Dataset Generation
+
+**File**: `mixed/generate.py`
+
+Create comprehensive benchmarking datasets by combining multiple source types.
+
+### Basic Usage
+
+```bash
+# Generate mixed dataset with default configuration
+python mixed/generate.py
+
+# Generate with custom conversation count
+python mixed/generate.py --num 1000
+
+# Generate with custom seed for reproducibility
+python mixed/generate.py --seed 123
+
+# Generate only specific format
+python mixed/generate.py --format parquet
+python mixed/generate.py --format aiperf
+python mixed/generate.py --format mooncake
+```
+
+### What You'll Learn
+
+- How to combine multiple dataset types into one
+- Configurable source weights and sampling strategies
+- Schema standardization across different dataset types
+- Source tracking for analysis
+- Custom configuration for mixed datasets
+
+### Configuration
+
+Edit `mixed/config.yaml` to customize:
+
+```yaml
+sources:
+  - type: "text"
+    weight: 0.25
+    path: "text/data/multi_turn_text_chat.parquet"
+    required: true
+
+  - type: "reasoning"
+    weight: 0.30
+    path: "reasoning/data/multi_turn_reasoning_chat.parquet"
+    required: true
+
+  - type: "agentic"
+    weight: 0.20
+    path: "agentic/data/multi_turn_agentic_task.parquet"
+    required: true
+
+  - type: "pdf"
+    weight: 0.15
+    path: "pdf/data/multi_turn_pdf_chat.parquet"
+    required: false
+
+  - type: "image"
+    weight: 0.10
+    path: "image/data/multi_turn_image_chat.parquet"
+    required: false
+```
+
+### Code Example: Analyze Mixed Dataset
+
+```python
+import pandas as pd
+import json
+
+# Load mixed dataset
+df = pd.read_parquet("mixed/data/multi_turn_mixed_chat.parquet")
+
+# Analyze source distribution
+source_counts = df['source_dataset'].value_counts()
+print("Source Distribution:")
+for source, count in source_counts.items():
+    percentage = (count / len(df)) * 100
+    print(f"  {source}: {count} ({percentage:.1f}%)")
+
+# Analyze by source dataset type
+for source in df['source_dataset'].unique():
+    source_df = df[df['source_dataset'] == source]
+    print(f"\n{source}:")
+    print(f"  Conversations: {len(source_df)}")
+    print(f"  Avg Turns: {source_df['num_turns'].mean():.1f}")
+    print(f"  Avg Tokens: {source_df['estimated_tokens'].mean():,.0f}")
+```
+
+### Output Example
+
+```
+Generating mixed dataset with 500 conversations (seed=42)
+
+Loading source datasets:
+  Loading text from text/data/multi_turn_text_chat.parquet
+    Loaded 500 conversations from text
+  Loading pdf from pdf/data/multi_turn_pdf_chat.parquet
+    Loaded 500 conversations from pdf
+  Loading image from image/data/multi_turn_image_chat.parquet
+    Loaded 500 conversations from image
+  Loading reasoning from reasoning/data/multi_turn_reasoning_chat.parquet
+    Loaded 500 conversations from reasoning
+  Loading agentic from agentic/data/multi_turn_agentic_task.parquet
+    Loaded 500 conversations from agentic
+
+Sampling 500 conversations using 'weighted' strategy:
+    Sampled 125 from text (weight: 0.25)
+    Sampled 100 from pdf (weight: 0.20)
+    Sampled 100 from image (weight: 0.20)
+    Sampled 100 from reasoning (weight: 0.20)
+    Sampled 75 from agentic (weight: 0.15)
+  Total sampled: 500 conversations
+
+Source Distribution:
+  text: 125 (25.0%)
+  reasoning: 100 (20.0%)
+  pdf: 100 (20.0%)
+  image: 100 (20.0%)
+  agentic: 75 (15.0%)
+```
+
+---
+
+## Example 5: Payload Score Comparison
+
+**File**: `examples/06_payload_score_comparison.py`
+
+Compare computational effort across datasets and create payload-balanced subsets.
+
+### Basic Usage
+
+```bash
+# Compare payload scores across datasets
+python examples/06_payload_score_comparison.py --datasets text reasoning agentic
+
+# Compare with sample size limit
+python examples/06_payload_score_comparison.py --datasets text reasoning --sample-size 100
+
+# Create payload-balanced subsets
+python examples/06_payload_score_comparison.py --datasets text reasoning agentic --target-payload 0.2
+
+# Compare all available datasets
+python examples/06_payload_score_comparison.py --datasets text pdf image reasoning agentic random repeat
+```
+
+### What You'll Learn
+
+- How to compute and compare payload scores
+- Understanding prefill vs decode effort
+- Creating datasets with identical computational effort
+- Binary search for target payload matching
+- Fair benchmarking through payload balancing
+
+### Code Example: Compute Payload Scores
+
+```python
+import pandas as pd
+from dataset_profile import compute_payload_score
+
+# Load datasets
+text_df = pd.read_parquet("text/data/multi_turn_text_chat.parquet")
+reasoning_df = pd.read_parquet("reasoning/data/multi_turn_reasoning_chat.parquet")
+
+# Compute payload scores
+text_payload = compute_payload_score(text_df, "text")
+reasoning_payload = compute_payload_score(reasoning_df, "reasoning")
+
+print("Text Dataset:")
+print(f"  Prefill Score:  {text_payload['prefill_score']:.4f}")
+print(f"  Decode Score:   {text_payload['decode_score']:.4f}")
+print(f"  Total Payload:  {text_payload['total_payload_score']:.4f}")
+
+print("\nReasoning Dataset:")
+print(f"  Prefill Score:  {reasoning_payload['prefill_score']:.4f}")
+print(f"  Decode Score:   {reasoning_payload['decode_score']:.4f}")
+print(f"  Total Payload:  {reasoning_payload['total_payload_score']:.4f}")
+
+# Compare breakdown factors
+print("\nPrefill Factors Comparison:")
+for factor in text_payload['prefill_breakdown']['raw'].keys():
+    text_val = text_payload['prefill_breakdown']['raw'][factor]
+    reasoning_val = reasoning_payload['prefill_breakdown']['raw'][factor]
+    print(f"  {factor}: text={text_val:.2f}, reasoning={reasoning_val:.2f}")
+```
+
+### Code Example: Access Payload from Manifest
+
+```python
+import json
+
+# Load manifest
+with open("text/data/multi_turn_text_chat_manifest.json", "r") as f:
+    manifest = json.load(f)
+
+# Access payload scores
+payload = manifest["payload_scores"]
+print(f"Prefill Score:  {payload['prefill_score']:.4f}")
+print(f"Decode Score:   {payload['decode_score']:.4f}")
+print(f"Total Payload:  {payload['total_payload_score']:.4f}")
+
+# Access detailed breakdown
+print("\nPrefill Breakdown:")
+for factor, value in payload['prefill_breakdown']['normalized'].items():
+    print(f"  {factor}: {value:.4f}")
+
+print("\nDecode Breakdown:")
+for factor, value in payload['decode_breakdown']['normalized'].items():
+    print(f"  {factor}: {value:.4f}")
+```
+
+### Output Example
+
+```
+PAYLOAD SCORE COMPARISON
+================================================================================
+Dataset              Conversations   Prefill      Decode       Total       
+--------------------------------------------------------------------------------
+reasoning            500             0.6104       0.4805       0.5455      
+pdf                  500             0.5144       0.2919       0.4032      
+text                 500             0.2945       0.1396       0.2171      
+agentic              500             0.1132       0.2423       0.1777      
+================================================================================
+
+Creating payload-balanced datasets with target payload: 0.2000
+================================================================================
+
+Processing text...
+Finding subset for text with target payload 0.2000...
+  Found subset of 340 conversations
+  Actual payload: 0.2003 (target: 0.2000)
+  Difference: 0.0003
+  ✓ Within tolerance (0.0500)
+  Saved to balanced_datasets/balanced_text_payload.parquet
+
+Processing reasoning...
+Finding subset for reasoning with target payload 0.2000...
+  Found subset of 164 conversations
+  Actual payload: 0.2015 (target: 0.2000)
+  Difference: 0.0015
+  ✓ Within tolerance (0.0500)
+  Saved to balanced_datasets/balanced_reasoning_payload.parquet
+```
+
+### Use Cases
+
+**Fair Benchmarking**: Compare models across different dataset types with identical computational effort
+
+**Resource Planning**: Estimate infrastructure requirements based on payload scores
+
+**Dataset Selection**: Choose datasets that match your computational budget
+
+**Performance Analysis**: Understand which factors contribute most to computational cost
 
 ---
 

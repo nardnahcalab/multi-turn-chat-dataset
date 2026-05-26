@@ -18,6 +18,10 @@ python examples/01_load_and_inspect.py text
 python examples/02_analyze_conversations.py text
 python examples/03_prepare_for_benchmarking.py --dataset text
 python examples/04_agentic_analysis.py
+
+# New examples for mixed datasets and payload scoring
+python mixed/generate.py --num 100
+python examples/06_payload_score_comparison.py --datasets text reasoning agentic
 ```
 
 ## Examples Overview
@@ -165,6 +169,41 @@ python examples/04_agentic_analysis.py --report
 
 ---
 
+### 5. Payload Score Comparison (`06_payload_score_comparison.py`)
+
+Compare computational effort across datasets and create payload-balanced subsets.
+
+**Features**:
+- Compute multi-dimensional payload scores
+- Compare prefill vs decode effort
+- Create payload-balanced datasets
+- Binary search for target matching
+- Fair benchmarking preparation
+
+**Usage**:
+```bash
+# Compare payload scores
+python examples/06_payload_score_comparison.py --datasets text reasoning agentic
+
+# Create balanced subsets
+python examples/06_payload_score_comparison.py --datasets text reasoning --target-payload 0.2
+
+# Compare all datasets
+python examples/06_payload_score_comparison.py --datasets text pdf image reasoning agentic
+```
+
+**Key Functions**:
+- `compute_payload_score()` - Calculate payload scores
+- `compare_payload_scores()` - Compare across datasets
+- `find_payload_balanced_subset()` - Create balanced subsets
+
+**Output**:
+- Payload score comparison tables
+- Balanced dataset subsets
+- Computational effort analysis
+
+---
+
 ## Common Workflows
 
 ### Workflow 1: Quick Dataset Inspection
@@ -210,7 +249,20 @@ python examples/04_agentic_analysis.py --compare 0 5
 python examples/04_agentic_analysis.py --report
 ```
 
-### Workflow 4: Custom Analysis
+### Workflow 4: Mixed Dataset Generation
+
+```bash
+# Generate mixed dataset combining multiple sources
+python mixed/generate.py --num 500
+
+# Compare payload scores across datasets
+python examples/06_payload_score_comparison.py --datasets text reasoning agentic
+
+# Create payload-balanced subsets for fair benchmarking
+python examples/06_payload_score_comparison.py --datasets text reasoning agentic --target-payload 0.2
+```
+
+### Workflow 5: Custom Analysis
 
 ```python
 # Create custom analysis script
@@ -274,6 +326,28 @@ for call in tool_calls:
 ```python
 subset = df.head(100)
 subset.to_parquet("custom_subset.parquet")
+```
+
+### Compute Payload Score
+
+```python
+from dataset_profile import compute_payload_score
+
+payload = compute_payload_score(df, "text")
+print(f"Prefill Score:  {payload['prefill_score']:.4f}")
+print(f"Decode Score:   {payload['decode_score']:.4f}")
+print(f"Total Payload:  {payload['total_payload_score']:.4f}")
+```
+
+### Load Payload from Manifest
+
+```python
+import json
+
+with open("text/data/multi_turn_text_chat_manifest.json", "r") as f:
+    manifest = json.load(f)
+
+payload = manifest["payload_scores"]
 ```
 
 ---
