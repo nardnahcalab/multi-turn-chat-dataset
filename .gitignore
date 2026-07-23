@@ -4,5 +4,17 @@ __pycache__/
 .DS_Store
 *.egg-info/
 
-# mooncake JSONL files are large (>200MB) and can be regenerated
-*_mooncake.jsonl
+# Generated datasets are deterministic (seed 42) and fully regenerable via
+# each `<type>/generate.py`, so we don't commit the bulk data to git.
+# What we DO keep tracked (see !exceptions below): the small *_manifest.json
+# profiles and the source caches (arxiv_papers.json, wikipedia_images.json).
+*.parquet
+*.jsonl
+
+# Stray/ad-hoc generator outputs at the repo root
+/data/
+/balanced_datasets/
+
+# Keep source caches so regeneration doesn't require re-fetching from network
+!pdf/data/arxiv_papers.json
+!image/data/wikipedia_images.json
