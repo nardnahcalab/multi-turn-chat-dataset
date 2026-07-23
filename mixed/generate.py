@@ -337,16 +337,22 @@ def export_aiperf_mooncake(df: pd.DataFrame, output_path: Path) -> None:
             cumulative_lengths = json.loads(row["cumulative_char_lengths"])
 
             # Export each turn with the complete message array up to that point
-            for i, length in enumerate(cumulative_lengths):
+            for i in range(len(cumulative_lengths)):
                 # Messages up to and including the current turn
                 # Each turn consists of user + assistant pair
                 turn_messages = messages[: (i + 1) * 2 + 1]  # +1 for system prompt
+
+                # output_length is the estimated decode tokens for THIS turn's
+                # assistant response (the last message), not the cumulative
+                # context size. Use the shared chars/4 heuristic.
+                assistant_content = turn_messages[-1].get("content", "")
+                output_length = max(1, len(str(assistant_content)) // 4)
 
                 session_id = row.get("conversation_id", str(uuid.uuid4()))
                 line = {
                     "session_id": session_id,
                     "messages": turn_messages,
-                    "output_length": length,
+                    "output_length": output_length,
                 }
                 f.write(json.dumps(line) + "\n")
 

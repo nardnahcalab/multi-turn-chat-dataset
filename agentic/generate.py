@@ -908,7 +908,7 @@ def generate_conversation(
         cumulative_lengths.append(total_chars)
 
     return {
-        "conversation_id": str(uuid.uuid4()),
+        "conversation_id": str(uuid.UUID(int=rng.getrandbits(128), version=4)),
         "task_type": task_type,
         "num_turns": num_turns,
         "num_messages": len(messages),
@@ -1013,7 +1013,7 @@ def save_dataset(
                         mooncake_record = {
                             "session_id": row["conversation_id"],
                             "messages": messages[: i + 2],
-                            "output_length": len(messages[i + 1]["content"].split()),
+                            "output_length": max(1, len(str(messages[i + 1]["content"])) // 4),
                         }
                         f.write(json.dumps(mooncake_record) + "\n")
         print(f"✓ Saved mooncake JSONL: {mooncake_file}")
