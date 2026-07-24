@@ -2,6 +2,26 @@
 
 Synthetic multi-turn conversation datasets for benchmarking LLM inference engines. Designed to simulate real-world conversations with naturally growing context, ideal for stress-testing **prefix caching**, **KV-cache management**, and **long-context inference** performance.
 
+## Getting the datasets (Git LFS required)
+
+The generated JSONL datasets — aiperf `multi_turn` and `mooncake_trace` files, some up to ~290 MB — are stored with **[Git LFS](https://git-lfs.com/)**. You must have `git-lfs` installed to fetch the actual data; without it a `git clone` only pulls small text *pointer* files instead of the real datasets.
+
+```bash
+# Install git-lfs once per machine (e.g. `apt install git-lfs`, `brew install git-lfs`,
+# or download from https://git-lfs.com), then:
+git lfs install
+
+# Fresh clone (LFS files download automatically)
+git clone git@github.com:nardnahcalab/multi-turn-chat-dataset.git
+
+# Already cloned before installing git-lfs? Pull the real files:
+git lfs install && git lfs pull
+```
+
+- Only the `.jsonl` datasets are tracked in LFS (`.gitattributes`).
+- **Parquet files are not checked in** — regenerate them anytime with `python <type>/generate.py` (deterministic, seed 42).
+- Manifests (`*_manifest.json`) and source caches (`arxiv_papers.json`, `wikipedia_images.json`) are ordinary files in Git.
+
 ## Dataset Types
 
 | Type | Status | Description |
@@ -14,6 +34,62 @@ Synthetic multi-turn conversation datasets for benchmarking LLM inference engine
 | **random/** | Available | Random/gibberish text multi-turn conversations |
 | **repeat/** | Available | Repetitive text multi-turn conversations |
 | **mixed/** | Available | Mixed dataset combining multiple source types with configurable weights |
+
+## Benchmarking with aiperf
+
+The JSONL files plug directly into [NVIDIA aiperf](https://github.com/ai-dynamo/aiperf). Pick the format that matches what you want to send:
+
+- `--custom-dataset-type multi_turn` — the lightweight `*_chat.jsonl` (user turns only; aiperf accumulates server responses into the growing prefix). Best for exercising prefix caching.
+- `--custom-dataset-type mooncake_trace` — the `*_mooncake.jsonl` (full message arrays per turn, with a target `output_length`). Best for full control over the exact prompt.
+
+Each dataset section below has ready-to-run commands. A minimal run:
+
+```bash
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --url localhost:8000 \
+    --streaming \
+    --input-file text/data/multi_turn_text_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --concurrency 32
+```
+
+### Measuring goodput (SLO-constrained throughput)
+
+**Goodput** is the number of completed requests per second that meet your service-level objectives (SLOs) — e.g. only counting requests whose time-to-first-token and inter-token latency stay under target. It's a far more useful signal than raw throughput when comparing how well an engine holds latency under load, and these growing-context datasets are ideal for probing where prefix caching stops keeping up.
+
+Pass SLOs to `--goodput` as space-separated `metric:value` pairs. Values are in each metric's display unit — **latencies in milliseconds**, **throughput in tokens/s**:
+
+```bash
+# multi_turn run: count only requests with TTFT <= 200ms AND inter-token latency <= 15ms
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --url localhost:8000 \
+    --streaming \
+    --input-file text/data/multi_turn_text_chat.jsonl \
+    --custom-dataset-type multi_turn \
+    --concurrency 32 \
+    --goodput "time_to_first_token:200 inter_token_latency:15"
+```
+
+```bash
+# full-context (mooncake_trace) run with end-to-end latency + per-user throughput SLOs
+aiperf profile \
+    --model <your-model> \
+    --endpoint-type chat \
+    --url localhost:8000 \
+    --streaming \
+    --input-file reasoning/data/multi_turn_reasoning_chat_mooncake.jsonl \
+    --custom-dataset-type mooncake_trace \
+    --concurrency 16 \
+    --goodput "request_latency:2000 output_token_throughput_per_user:200"
+```
+
+Common SLO metric tags: `time_to_first_token` (ms), `inter_token_latency` (ms), `request_latency` (ms), `output_token_throughput_per_user` (tokens/s). aiperf adds a **`Goodput (requests/sec)`** row to its report alongside the usual latency/throughput metrics. Sweep `--concurrency` to find the highest load at which your engine still meets the SLOs — then compare that ceiling across dataset types (e.g. `repeat/` vs `random/`) to quantify prefix-cache benefit.
+
+> Full reference: [aiperf CLI options](https://github.com/ai-dynamo/aiperf/blob/main/docs/cli-options.md) and the [goodput tutorial](https://github.com/ai-dynamo/aiperf/blob/main/docs/tutorials/goodput.md).
 
 ## Mixed Dataset
 
