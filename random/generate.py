@@ -14,28 +14,14 @@ Usage:
     python generate.py --format all        # all|parquet|aiperf|mooncake
 """
 
-import argparse
-import hashlib
 import json
-import random
 import string
 import sys
-import uuid
 from pathlib import Path
-
-import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-import yaml
 
 # Add project root to path for shared module
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from dataset_profile import (
-    build_descriptive_name,
-    build_manifest,
-    print_profile_summary,
-    save_manifest,
-)
+from generator_base import BaseConversationGenerator, CHARS_PER_TOKEN
 
 # ---------------------------------------------------------------------------
 # Word pools for random content generation
@@ -209,12 +195,9 @@ SYMBOLS = list("!@#$%^&*()_+-=[]{}|;:',.<>?/~`")
 # Conversation generator
 # ---------------------------------------------------------------------------
 
-class ConversationGenerator:
-    def __init__(self, config: dict, seed: int = 42):
-        self.config = config
-        self.rng = random.Random(seed)
-        self.topics = config["topics"]
-        self.topic_weights = [t["weight"] for t in self.topics]
+class ConversationGenerator(BaseConversationGenerator):
+    dataset_type = "random"
+    cli_description = "Generate synthetic multi-turn random chat dataset"
 
     # ---- Random content generators for each topic ----
 
@@ -412,25 +395,6 @@ class ConversationGenerator:
 
         return text
 
-    # ---- Topic and length selection ----
-
-    def _pick_topic(self) -> dict:
-        """Weighted random topic selection."""
-        return self.rng.choices(self.topics, weights=self.topic_weights, k=1)[0]
-
-    def _response_length_bucket(self, turn_index: int) -> str:
-        """Determine response length based on turn position."""
-        dist_config = self.config["response_length"]["length_distribution_by_turn"]
-        if turn_index < 5:
-            dist = dist_config["early"]
-        elif turn_index < 20:
-            dist = dist_config["middle"]
-        else:
-            dist = dist_config["late"]
-        buckets = list(dist.keys())
-        weights = list(dist.values())
-        return self.rng.choices(buckets, weights=weights, k=1)[0]
-
     # ---- Conversation assembly ----
 
     def generate_conversation(self, num_turns: int) -> dict:
@@ -459,7 +423,7 @@ class ConversationGenerator:
 
             cumulative_char_lengths.append(running_chars)
 
-        conversation_id = str(uuid.UUID(int=self.rng.getrandbits(128), version=4))
+        conversation_id = self.new_conversation_id()
 
         return {
             "conversation_id": conversation_id,
@@ -469,229 +433,17 @@ class ConversationGenerator:
             "system_prompt": system_prompt,
             "messages": json.dumps(messages),
             "total_characters": running_chars,
-            "estimated_tokens": running_chars // 4,  # rough approximation
+            "estimated_tokens": running_chars // CHARS_PER_TOKEN,  # rough approximation
             "cumulative_char_lengths": json.dumps(cumulative_char_lengths),
         }
 
-    def generate_dataset(self, num_conversations: int = None) -> list[dict]:
-        """Generate the full dataset according to config distribution."""
-        if num_conversations is not None:
-            # Override: uniform random turns
-            conversations = []
-            turn_min = self.config["turns"]["min"]
-            turn_max = self.config["turns"]["max"]
-            for _ in range(num_conversations):
-                n_turns = self.rng.randint(turn_min, turn_max)
-                conversations.append(self.generate_conversation(n_turns))
-            return conversations
-
-        # Use configured distribution buckets
-        conversations = []
-        dist = self.config["turns"]["distribution"]
-        for bucket_name, bucket_cfg in dist.items():
-            count = bucket_cfg["count"]
-            min_t = bucket_cfg["min_turns"]
-            max_t = bucket_cfg["max_turns"]
-            for _ in range(count):
-                n_turns = self.rng.randint(min_t, max_t)
-                conversations.append(self.generate_conversation(n_turns))
-
-        self.rng.shuffle(conversations)
-        return conversations
-
 
 # ---------------------------------------------------------------------------
-# Output format converters
-# ---------------------------------------------------------------------------
-
-def convert_to_aiperf_multi_turn(conversations: list[dict]) -> list[dict]:
-    """Convert conversations to aiperf multi_turn JSONL format.
-
-    aiperf multi_turn format (one JSON object per line):
-        {"session_id": "...", "turns": [{"text": "user msg"}, {"text": "user msg 2"}, ...]}
-
-    This uses the `deltas_without_responses` context mode — aiperf sends only
-    user messages and accumulates live server responses into conversation history
-    automatically. This is ideal for benchmarking prefix caching because each
-    turn's request includes the full conversation prefix.
-
-    Usage with aiperf:
-        aiperf profile \\
-            --model <model> \\
-            --endpoint-type chat \\
-            --input-file multi_turn_random_chat.jsonl \\
-            --custom-dataset-type multi_turn \\
-            --streaming --url localhost:8000
-
-    Returns:
-        List of dicts, each representing one conversation line for JSONL output.
-    """
-    aiperf_entries = []
-    for conv in conversations:
-        messages = json.loads(conv["messages"])
-        turns = []
-        for msg in messages:
-            if msg["role"] == "user":
-                turns.append({"text": msg["content"]})
-        if turns:
-            aiperf_entries.append({
-                "session_id": conv["conversation_id"],
-                "turns": turns,
-            })
-    return aiperf_entries
-
-
-def convert_to_aiperf_mooncake(conversations: list[dict], block_size: int = 512) -> list[dict]:
-    """Convert conversations to aiperf mooncake_trace JSONL format.
-
-    This format sends the full message array (system + user + assistant) per turn,
-    using the `message_array_with_responses` context mode. Each line represents a
-    single turn within a session, with the complete conversation history up to that
-    point. This gives full control over the exact prompt sent to the server.
-
-    Format (one JSON object per line):
-        {"session_id": "...", "messages": [...], "output_length": N}
-
-    Usage with aiperf:
-        aiperf profile \\
-            --model <model> \\
-            --endpoint-type chat \\
-            --input-file multi_turn_random_chat_mooncake.jsonl \\
-            --custom-dataset-type mooncake_trace \\
-            --streaming --url localhost:8000
-
-    Returns:
-        List of dicts, one per turn across all conversations.
-    """
-    entries = []
-    for conv in conversations:
-        messages = json.loads(conv["messages"])
-        session_id = conv["conversation_id"]
-        # Walk through the conversation, building up context each turn
-        context = []
-        for i, msg in enumerate(messages):
-            context.append(msg)
-            # Emit an entry after each assistant message (= end of a turn pair)
-            if msg["role"] == "assistant":
-                # Estimate output length for this assistant response
-                output_tokens = max(1, len(msg["content"]) // 4)
-                entry = {
-                    "session_id": session_id,
-                    "messages": [m for m in context],  # full context up to here
-                    "output_length": output_tokens,
-                }
-                # Add delay for turns after the first (simulate user think time)
-                turn_index = len([m for m in context if m["role"] == "assistant"])
-                if turn_index > 1:
-                    entry["delay"] = 0  # no artificial delay; set >0 to simulate think time
-                entries.append(entry)
-    return entries
-
-
-# ---------------------------------------------------------------------------
-# Main
+# Entry point (CLI, config loading, output writing handled by the base class)
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate synthetic multi-turn random chat dataset")
-    parser.add_argument("--config", default="config.yaml", help="Path to config YAML")
-    parser.add_argument("--num", type=int, default=None, help="Override number of conversations")
-    parser.add_argument("--seed", type=int, default=None, help="Override random seed")
-    parser.add_argument("--output", default=None, help="Override output path")
-    parser.add_argument("--format", choices=["all", "parquet", "aiperf", "mooncake"],
-                        default="all", help="Output format(s)")
-    parser.add_argument("--name", default=None,
-                        help="Custom suffix for descriptive output filenames")
-    parser.add_argument("--descriptive-names", action="store_true", default=False,
-                        help="Use descriptive filenames encoding count, seed, version, and date")
-    parser.add_argument("--no-profile", action="store_true", default=False,
-                        help="Skip generating the dataset manifest/profile JSON")
-    args = parser.parse_args()
-
-    config_path = Path(args.config)
-    if not config_path.exists():
-        config_path = Path(__file__).parent / "config.yaml"
-
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-
-    seed = args.seed if args.seed is not None else config["dataset"]["seed"]
-    generator = ConversationGenerator(config, seed=seed)
-
-    num_conversations = args.num
-    print(f"Generating random conversations (seed={seed})...")
-    conversations = generator.generate_dataset(num_conversations=num_conversations)
-    print(f"Generated {len(conversations)} conversations")
-
-    df = pd.DataFrame(conversations)
-
-    print(f"\n--- Dataset Summary ---")
-    print(f"Total conversations: {len(df)}")
-    print(f"Turn count range: {df['num_turns'].min()} - {df['num_turns'].max()}")
-    print(f"Mean turns: {df['num_turns'].mean():.1f}")
-    print(f"Topic distribution:")
-    for topic, count in df["topic"].value_counts().items():
-        print(f"  {topic}: {count} ({100*count/len(df):.1f}%)")
-    print(f"Estimated total tokens: {df['estimated_tokens'].sum():,}")
-    print(f"Mean tokens/conversation: {df['estimated_tokens'].mean():,.0f}")
-    print(f"Max tokens (single conversation): {df['estimated_tokens'].max():,}")
-
-    output_dir = Path(args.output).parent if args.output else Path(__file__).parent / config["dataset"]["output_dir"]
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    actual_count = len(df)
-    descriptive_name = build_descriptive_name(
-        config, actual_count, seed, "random", custom_suffix=args.name
-    )
-
-    if args.descriptive_names:
-        file_base = descriptive_name
-    else:
-        file_base = config["dataset"]["output_filename"].replace(".parquet", "")
-
-    fmt = args.format
-    output_files = {}
-
-    if fmt in ("all", "parquet"):
-        parquet_path = Path(args.output) if args.output and fmt == "parquet" else output_dir / f"{file_base}.parquet"
-        df.to_parquet(parquet_path, engine="pyarrow", index=False)
-        file_size_mb = parquet_path.stat().st_size / (1024 * 1024)
-        output_files["parquet"] = str(parquet_path)
-        print(f"\nParquet written to: {parquet_path} ({file_size_mb:.2f} MB)")
-
-    if fmt in ("all", "aiperf"):
-        aiperf_entries = convert_to_aiperf_multi_turn(conversations)
-        jsonl_path = output_dir / f"{file_base}.jsonl"
-        with open(jsonl_path, "w") as f:
-            for entry in aiperf_entries:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        file_size_mb = jsonl_path.stat().st_size / (1024 * 1024)
-        output_files["aiperf_multi_turn"] = str(jsonl_path)
-        print(f"aiperf multi_turn JSONL written to: {jsonl_path} ({file_size_mb:.2f} MB)")
-
-    if fmt in ("all", "mooncake"):
-        mooncake_entries = convert_to_aiperf_mooncake(conversations)
-        mooncake_path = output_dir / f"{file_base}_mooncake.jsonl"
-        with open(mooncake_path, "w") as f:
-            for entry in mooncake_entries:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        file_size_mb = mooncake_path.stat().st_size / (1024 * 1024)
-        output_files["mooncake_trace"] = str(mooncake_path)
-        print(f"aiperf mooncake_trace JSONL written to: {mooncake_path} ({file_size_mb:.2f} MB)")
-
-    if not args.no_profile:
-        manifest = build_manifest(
-            df=df,
-            config=config,
-            dataset_type="random",
-            seed=seed,
-            output_files=output_files,
-            descriptive_name=descriptive_name,
-        )
-        manifest_path = save_manifest(manifest, output_dir, file_base)
-        output_files["manifest"] = str(manifest_path)
-        print(f"\nDataset manifest written to: {manifest_path}")
-        print_profile_summary(manifest)
+    ConversationGenerator.main()
 
 
 if __name__ == "__main__":

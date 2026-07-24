@@ -19,7 +19,6 @@ Usage:
     python generate.py --format parquet    # specific format only
 """
 
-import argparse
 import json
 import random
 import sys
@@ -27,19 +26,9 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-import yaml
-
-# Add project root to path for shared module
+# Add project root to path for the shared modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from dataset_profile import (
-    build_descriptive_name,
-    build_manifest,
-    print_profile_summary,
-    save_manifest,
-)
+from generator_base import BaseConversationGenerator, CHARS_PER_TOKEN
 
 # ---------------------------------------------------------------------------
 # Task-specific conversation templates
@@ -916,7 +905,7 @@ def generate_conversation(
         "messages": json.dumps(messages),
         "tool_calls": json.dumps(tool_calls_log),
         "total_characters": total_chars,
-        "estimated_tokens": total_chars // 4,
+        "estimated_tokens": total_chars // CHARS_PER_TOKEN,
         "cumulative_char_lengths": json.dumps(cumulative_lengths),
         "success_metric": metric_name,
         "success_score": success_score,
@@ -926,11 +915,9 @@ def generate_conversation(
 
 
 def generate_dataset(
-    num_conversations: int, config: Dict[str, Any], seed: int = 42
-) -> pd.DataFrame:
-    """Generate the complete agentic task dataset."""
-    rng = random.Random(seed)
-
+    num_conversations: int, config: Dict[str, Any], rng: random.Random
+) -> List[Dict[str, Any]]:
+    """Generate the complete agentic task dataset as a list of conversations."""
     # Calculate distribution of conversations across task types
     task_types = config["task_types"]
     task_weights = [t["weight"] for t in task_types]
@@ -960,175 +947,49 @@ def generate_dataset(
         conversation = generate_conversation(task_type, num_turns, rng, config)
         conversations.append(conversation)
 
-    return pd.DataFrame(conversations)
+    return conversations
 
 
-def save_dataset(
-    df: pd.DataFrame, output_dir: str, output_filename: str, formats: List[str] = None
-) -> None:
-    """Save dataset in multiple formats."""
-    if formats is None:
-        formats = ["parquet", "aiperf", "mooncake"]
+class AgenticTaskGenerator(BaseConversationGenerator):
+    """Agentic task generator.
 
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
+    Structurally different from the class-based text generators (task-type
+    sampling, tool-call simulation), so it overrides ``generate_dataset`` and
+    the mooncake writer while reusing the shared CLI/output orchestration.
+    """
 
-    # Parquet format
-    if "parquet" in formats:
-        base_name = output_filename.replace(".parquet", "")
-        parquet_file = output_path / (base_name + ".parquet")
-        df.to_parquet(parquet_file, index=False)
-        print(f"✓ Saved Parquet: {parquet_file}")
+    dataset_type = "agentic"
+    cli_description = "Generate synthetic agentic task dataset for agent benchmarking"
+    # Agentic has always escaped non-ASCII (e.g. the ✓/✗ status markers) in its
+    # JSONL output, unlike the other generators.
+    jsonl_ensure_ascii = True
 
-    # aiperf multi_turn format (JSONL)
-    if "aiperf" in formats:
-        base_name = output_filename.replace(".parquet", "")
-        aiperf_file = output_path / (base_name + ".jsonl")
-        with open(aiperf_file, "w") as f:
-            for _, row in df.iterrows():
-                messages = json.loads(row["messages"])
-                # Extract user messages for multi_turn format
-                user_messages = [
-                    {"text": msg["content"]}
-                    for msg in messages
-                    if msg["role"] == "user"
-                ]
-                aiperf_record = {
-                    "session_id": row["conversation_id"],
-                    "turns": user_messages,
-                }
-                f.write(json.dumps(aiperf_record) + "\n")
-        print(f"✓ Saved aiperf JSONL: {aiperf_file}")
+    def generate_dataset(self, num_conversations: int = None) -> list[dict]:
+        if num_conversations is None:
+            num_conversations = self.config["dataset"]["num_conversations"]
+        return generate_dataset(num_conversations, self.config, self.rng)
 
-    # mooncake_trace format (JSONL with full message arrays)
-    if "mooncake" in formats:
-        base_name = output_filename.replace(".parquet", "")
-        mooncake_file = output_path / (base_name + "_mooncake.jsonl")
-        with open(mooncake_file, "w") as f:
-            for _, row in df.iterrows():
-                messages = json.loads(row["messages"])
-                # Output one line per turn (after user message)
-                for i in range(1, len(messages), 2):
-                    if i + 1 < len(messages):
-                        mooncake_record = {
-                            "session_id": row["conversation_id"],
-                            "messages": messages[: i + 2],
-                            "output_length": max(1, len(str(messages[i + 1]["content"])) // 4),
-                        }
-                        f.write(json.dumps(mooncake_record) + "\n")
-        print(f"✓ Saved mooncake JSONL: {mooncake_file}")
+    def to_aiperf_mooncake(self, conversations: list[dict]) -> list[dict]:
+        """Mooncake entries for agentic tasks (one per assistant turn).
+
+        Unlike the base writer, this omits the ``delay`` field to preserve the
+        original agentic output format.
+        """
+        entries = []
+        for conv in conversations:
+            messages = json.loads(conv["messages"])
+            for i in range(1, len(messages), 2):
+                if i + 1 < len(messages):
+                    entries.append({
+                        "session_id": conv["conversation_id"],
+                        "messages": messages[: i + 2],
+                        "output_length": max(1, len(str(messages[i + 1]["content"])) // CHARS_PER_TOKEN),
+                    })
+        return entries
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate synthetic agentic task dataset for agent benchmarking"
-    )
-    parser.add_argument(
-        "--config",
-        type=str,
-        default=str(Path(__file__).parent / "config.yaml"),
-        help="Path to configuration file",
-    )
-    parser.add_argument(
-        "--num",
-        type=int,
-        default=None,
-        help="Override number of conversations",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help="Override random seed",
-    )
-    parser.add_argument(
-        "--format",
-        type=str,
-        choices=["parquet", "aiperf", "mooncake", "all"],
-        default="all",
-        help="Output format(s)",
-    )
-    parser.add_argument("--name", default=None,
-                        help="Custom suffix for descriptive output filenames")
-    parser.add_argument("--descriptive-names", action="store_true", default=False,
-                        help="Use descriptive filenames encoding count, seed, version, and date")
-    parser.add_argument("--no-profile", action="store_true", default=False,
-                        help="Skip generating the dataset manifest/profile JSON")
-
-    args = parser.parse_args()
-
-    # Load configuration
-    config_path = Path(args.config)
-    if not config_path.exists():
-        print(f"Error: Config file not found: {config_path}")
-        return
-
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-
-    # Override config with command-line arguments
-    if args.num:
-        config["dataset"]["num_conversations"] = args.num
-    if args.seed:
-        config["dataset"]["seed"] = args.seed
-
-    num_conversations = config["dataset"]["num_conversations"]
-    seed = config["dataset"]["seed"]
-    output_dir = Path(__file__).parent / config["dataset"]["output_dir"]
-    output_filename = config["dataset"]["output_filename"]
-
-    print(f"Generating {num_conversations} agentic task conversations (seed={seed})...")
-    df = generate_dataset(num_conversations, config, seed=seed)
-
-    print(f"Dataset shape: {df.shape}")
-    print(f"Task type distribution:\n{df['task_type'].value_counts()}")
-    print(f"Turn count statistics:\n{df['num_turns'].describe()}")
-    print(f"Success score statistics:\n{df['success_score'].describe()}")
-
-    # Build descriptive name
-    actual_count = len(df)
-    descriptive_name = build_descriptive_name(
-        config, actual_count, seed, "agentic", custom_suffix=args.name
-    )
-
-    # Choose file basename: descriptive or original
-    if args.descriptive_names:
-        file_base = descriptive_name
-        output_filename = f"{file_base}.parquet"
-    else:
-        file_base = output_filename.replace(".parquet", "")
-
-    # Determine formats to save
-    formats = ["parquet", "aiperf", "mooncake"] if args.format == "all" else [args.format]
-
-    print(f"\nSaving dataset in formats: {formats}")
-    save_dataset(df, str(output_dir), output_filename, formats)
-
-    # Collect output file paths for manifest
-    output_files = {}
-    if "parquet" in formats:
-        output_files["parquet"] = str(output_dir / f"{file_base}.parquet")
-    if "aiperf" in formats:
-        output_files["aiperf_multi_turn"] = str(output_dir / f"{file_base}.jsonl")
-    if "mooncake" in formats:
-        output_files["mooncake_trace"] = str(output_dir / f"{file_base}_mooncake.jsonl")
-
-    # Generate and save dataset manifest (tags + distribution profile)
-    if not args.no_profile:
-        manifest = build_manifest(
-            df=df,
-            config=config,
-            dataset_type="agentic",
-            seed=seed,
-            output_files=output_files,
-            descriptive_name=descriptive_name,
-        )
-        manifest_path = save_manifest(manifest, output_dir, file_base)
-        output_files["manifest"] = str(manifest_path)
-        print(f"\nDataset manifest written to: {manifest_path}")
-        print_profile_summary(manifest)
-
-    print("\n✓ Dataset generation complete!")
+    AgenticTaskGenerator.main()
 
 
 if __name__ == "__main__":

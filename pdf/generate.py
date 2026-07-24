@@ -15,27 +15,14 @@ Usage:
     python generate.py --skip-fetch             # reuse cached arxiv_papers.json
 """
 
-import argparse
 import json
-import random
 import sys
 import time
-import uuid
 from pathlib import Path
 
-import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-import yaml
-
-# Add project root to path for shared module
+# Add project root to path for the shared modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from dataset_profile import (
-    build_descriptive_name,
-    build_manifest,
-    print_profile_summary,
-    save_manifest,
-)
+from generator_base import BaseConversationGenerator, CHARS_PER_TOKEN
 
 # ---------------------------------------------------------------------------
 # arXiv paper fetcher
@@ -478,13 +465,64 @@ FILL_VALUES = {
 # Conversation generator
 # ---------------------------------------------------------------------------
 
-class PDFConversationGenerator:
+class PDFConversationGenerator(BaseConversationGenerator):
+    dataset_type = "pdf"
+    cli_description = "Generate synthetic multi-turn PDF chat dataset from arXiv papers"
+
     def __init__(self, config: dict, papers: list[dict], seed: int = 42):
-        self.config = config
+        super().__init__(config, seed)
         self.papers = papers
-        self.rng = random.Random(seed)
         self.conv_types = config["conversation_types"]
         self.conv_weights = [t["weight"] for t in self.conv_types]
+
+    @classmethod
+    def add_cli_args(cls, parser) -> None:
+        parser.add_argument("--skip-fetch", action="store_true",
+                            help="Skip arXiv fetch, reuse cached papers")
+
+    @classmethod
+    def from_args(cls, config, seed, args):
+        cache_path = cls._module_dir() / config["papers"]["cache_file"]
+        if args.skip_fetch and cache_path.exists():
+            print(f"Loading cached papers from {cache_path}")
+            with open(cache_path) as f:
+                papers = json.load(f)
+        else:
+            papers = fetch_arxiv_papers(config, cache_path)
+        print(f"Using {len(papers)} arXiv papers")
+        return cls(config, papers, seed=seed)
+
+    def to_aiperf_multi_turn(self, conversations: list[dict]) -> list[dict]:
+        """aiperf multi_turn entries. The first PDF turn embeds the PDF URL
+        as a ``[PDF: ...]`` marker; subsequent turns are text-only follow-ups.
+        """
+        entries = []
+        for conv in conversations:
+            messages = json.loads(conv["messages"])
+            turns = []
+            for msg in messages:
+                if msg["role"] == "user":
+                    # Handle multimodal first message
+                    if isinstance(msg["content"], list):
+                        text_parts = []
+                        files = []
+                        for part in msg["content"]:
+                            if part.get("type") == "text":
+                                text_parts.append(part["text"])
+                            elif part.get("type") == "file":
+                                files.append(part["file"]["url"])
+                        text = " ".join(text_parts)
+                        if files:
+                            text += "\n\n[PDF: " + files[0] + "]"
+                        turns.append({"text": text})
+                    else:
+                        turns.append({"text": msg["content"]})
+            if turns:
+                entries.append({
+                    "session_id": conv["conversation_id"],
+                    "turns": turns,
+                })
+        return entries
 
     def _fill_template(self, template: str, paper: dict) -> str:
         """Fill placeholders with paper metadata and generic values."""
@@ -621,7 +659,7 @@ class PDFConversationGenerator:
 
             cumulative_char_lengths.append(running_chars)
 
-        conversation_id = str(uuid.UUID(int=self.rng.getrandbits(128), version=4))
+        conversation_id = self.new_conversation_id()
 
         return {
             "conversation_id": conversation_id,
@@ -635,220 +673,17 @@ class PDFConversationGenerator:
             "system_prompt": SYSTEM_PROMPT,
             "messages": json.dumps(messages),
             "total_characters": running_chars,
-            "estimated_tokens": running_chars // 4,
+            "estimated_tokens": running_chars // CHARS_PER_TOKEN,
             "cumulative_char_lengths": json.dumps(cumulative_char_lengths),
         }
 
-    def generate_dataset(self, num_conversations: int = None) -> list[dict]:
-        if num_conversations is not None:
-            conversations = []
-            turn_min = self.config["turns"]["min"]
-            turn_max = self.config["turns"]["max"]
-            for _ in range(num_conversations):
-                n_turns = self.rng.randint(turn_min, turn_max)
-                conversations.append(self.generate_conversation(n_turns))
-            return conversations
-
-        conversations = []
-        dist = self.config["turns"]["distribution"]
-        for bucket_name, bucket_cfg in dist.items():
-            count = bucket_cfg["count"]
-            min_t = bucket_cfg["min_turns"]
-            max_t = bucket_cfg["max_turns"]
-            for _ in range(count):
-                n_turns = self.rng.randint(min_t, max_t)
-                conversations.append(self.generate_conversation(n_turns))
-
-        self.rng.shuffle(conversations)
-        return conversations
-
 
 # ---------------------------------------------------------------------------
-# aiperf export functions
-# ---------------------------------------------------------------------------
-
-def convert_to_aiperf_multi_turn(conversations: list[dict]) -> list[dict]:
-    """Convert to aiperf multi_turn JSONL format.
-
-    For PDF conversations, the first turn includes the PDF URL in the
-    multimodal content format. Subsequent turns are text-only follow-ups.
-    """
-    entries = []
-    for conv in conversations:
-        messages = json.loads(conv["messages"])
-        turns = []
-        for msg in messages:
-            if msg["role"] == "user":
-                # Handle multimodal first message
-                if isinstance(msg["content"], list):
-                    # Extract text and file reference
-                    text_parts = []
-                    files = []
-                    for part in msg["content"]:
-                        if part.get("type") == "text":
-                            text_parts.append(part["text"])
-                        elif part.get("type") == "file":
-                            files.append(part["file"]["url"])
-                    text = " ".join(text_parts)
-                    if files:
-                        text += "\n\n[PDF: " + files[0] + "]"
-                    turns.append({"text": text})
-                else:
-                    turns.append({"text": msg["content"]})
-        if turns:
-            entries.append({
-                "session_id": conv["conversation_id"],
-                "turns": turns,
-            })
-    return entries
-
-
-def convert_to_aiperf_mooncake(conversations: list[dict]) -> list[dict]:
-    """Convert to aiperf mooncake_trace JSONL with full message arrays."""
-    entries = []
-    for conv in conversations:
-        messages = json.loads(conv["messages"])
-        session_id = conv["conversation_id"]
-        context = []
-        for msg in messages:
-            context.append(msg)
-            if msg["role"] == "assistant":
-                output_tokens = max(1, len(str(msg["content"])) // 4)
-                entry = {
-                    "session_id": session_id,
-                    "messages": [m for m in context],
-                    "output_length": output_tokens,
-                }
-                turn_index = len([m for m in context if m["role"] == "assistant"])
-                if turn_index > 1:
-                    entry["delay"] = 0
-                entries.append(entry)
-    return entries
-
-
-# ---------------------------------------------------------------------------
-# Main
+# Entry point (CLI, config loading, output writing handled by the base class)
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate synthetic multi-turn PDF chat dataset from arXiv papers"
-    )
-    parser.add_argument("--config", default="config.yaml", help="Path to config YAML")
-    parser.add_argument("--num", type=int, default=None, help="Override number of conversations")
-    parser.add_argument("--seed", type=int, default=None, help="Override random seed")
-    parser.add_argument("--output", default=None, help="Override output path")
-    parser.add_argument("--format", choices=["all", "parquet", "aiperf", "mooncake"],
-                        default="all", help="Output format(s)")
-    parser.add_argument("--skip-fetch", action="store_true",
-                        help="Skip arXiv fetch, reuse cached papers")
-    parser.add_argument("--name", default=None,
-                        help="Custom suffix for descriptive output filenames")
-    parser.add_argument("--descriptive-names", action="store_true", default=False,
-                        help="Use descriptive filenames encoding count, seed, version, and date")
-    parser.add_argument("--no-profile", action="store_true", default=False,
-                        help="Skip generating the dataset manifest/profile JSON")
-    args = parser.parse_args()
-
-    config_path = Path(args.config)
-    if not config_path.exists():
-        config_path = Path(__file__).parent / "config.yaml"
-
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-
-    seed = args.seed if args.seed is not None else config["dataset"]["seed"]
-    cache_path = Path(__file__).parent / config["papers"]["cache_file"]
-
-    # Fetch or load arXiv papers
-    if args.skip_fetch and cache_path.exists():
-        print(f"Loading cached papers from {cache_path}")
-        with open(cache_path) as f:
-            papers = json.load(f)
-    else:
-        papers = fetch_arxiv_papers(config, cache_path)
-
-    print(f"Using {len(papers)} arXiv papers")
-
-    generator = PDFConversationGenerator(config, papers, seed=seed)
-
-    num_conversations = args.num
-    print(f"Generating PDF conversations (seed={seed})...")
-    conversations = generator.generate_dataset(num_conversations=num_conversations)
-    print(f"Generated {len(conversations)} conversations")
-
-    df = pd.DataFrame(conversations)
-
-    print(f"\n--- PDF Dataset Summary ---")
-    print(f"Total conversations: {len(df)}")
-    print(f"Turn count range: {df['num_turns'].min()} - {df['num_turns'].max()}")
-    print(f"Mean turns: {df['num_turns'].mean():.1f}")
-    print(f"Unique papers used: {df['paper_arxiv_id'].nunique()}")
-    print(f"Conversation type distribution:")
-    for ctype, count in df["conversation_type"].value_counts().items():
-        print(f"  {ctype}: {count} ({100*count/len(df):.1f}%)")
-    print(f"Estimated total tokens: {df['estimated_tokens'].sum():,}")
-    print(f"Mean tokens/conversation: {df['estimated_tokens'].mean():,.0f}")
-    print(f"Max tokens (single conversation): {df['estimated_tokens'].max():,}")
-
-    output_dir = (Path(args.output).parent if args.output
-                  else Path(__file__).parent / config["dataset"]["output_dir"])
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    actual_count = len(df)
-    descriptive_name = build_descriptive_name(
-        config, actual_count, seed, "pdf", custom_suffix=args.name
-    )
-
-    if args.descriptive_names:
-        file_base = descriptive_name
-    else:
-        file_base = config["dataset"]["output_filename"].replace(".parquet", "")
-
-    fmt = args.format
-    output_files = {}
-
-    if fmt in ("all", "parquet"):
-        parquet_path = (Path(args.output) if args.output and fmt == "parquet"
-                        else output_dir / f"{file_base}.parquet")
-        df.to_parquet(parquet_path, engine="pyarrow", index=False)
-        mb = parquet_path.stat().st_size / (1024 * 1024)
-        output_files["parquet"] = str(parquet_path)
-        print(f"\nParquet written to: {parquet_path} ({mb:.2f} MB)")
-
-    if fmt in ("all", "aiperf"):
-        entries = convert_to_aiperf_multi_turn(conversations)
-        jsonl_path = output_dir / f"{file_base}.jsonl"
-        with open(jsonl_path, "w") as f:
-            for entry in entries:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        mb = jsonl_path.stat().st_size / (1024 * 1024)
-        output_files["aiperf_multi_turn"] = str(jsonl_path)
-        print(f"aiperf multi_turn JSONL written to: {jsonl_path} ({mb:.2f} MB)")
-
-    if fmt in ("all", "mooncake"):
-        entries = convert_to_aiperf_mooncake(conversations)
-        mooncake_path = output_dir / f"{file_base}_mooncake.jsonl"
-        with open(mooncake_path, "w") as f:
-            for entry in entries:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        mb = mooncake_path.stat().st_size / (1024 * 1024)
-        output_files["mooncake_trace"] = str(mooncake_path)
-        print(f"aiperf mooncake_trace JSONL written to: {mooncake_path} ({mb:.2f} MB)")
-
-    if not args.no_profile:
-        manifest = build_manifest(
-            df=df,
-            config=config,
-            dataset_type="pdf",
-            seed=seed,
-            output_files=output_files,
-            descriptive_name=descriptive_name,
-        )
-        manifest_path = save_manifest(manifest, output_dir, file_base)
-        output_files["manifest"] = str(manifest_path)
-        print(f"\nDataset manifest written to: {manifest_path}")
-        print_profile_summary(manifest)
+    PDFConversationGenerator.main()
 
 
 if __name__ == "__main__":

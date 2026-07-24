@@ -21,12 +21,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 import yaml
 
-# Add project root to path for shared module
+# Add project root to path for shared modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from generator_base import CHARS_PER_TOKEN
 from dataset_profile import (
     build_descriptive_name,
     build_manifest,
@@ -346,7 +345,7 @@ def export_aiperf_mooncake(df: pd.DataFrame, output_path: Path) -> None:
                 # assistant response (the last message), not the cumulative
                 # context size. Use the shared chars/4 heuristic.
                 assistant_content = turn_messages[-1].get("content", "")
-                output_length = max(1, len(str(assistant_content)) // 4)
+                output_length = max(1, len(str(assistant_content)) // CHARS_PER_TOKEN)
 
                 session_id = row.get("conversation_id", str(uuid.uuid4()))
                 line = {
