@@ -4,17 +4,10 @@ __pycache__/
 .DS_Store
 *.egg-info/
 
-# Generated datasets are deterministic (seed 42) and fully regenerable via
-# each `<type>/generate.py`, so we don't commit the bulk data to git.
-# What we DO keep tracked (see !exceptions below): the small *_manifest.json
-# profiles and the source caches (arxiv_papers.json, wikipedia_images.json).
+# Generated JSONL datasets (including the large *_mooncake.jsonl) are tracked
+# via Git LFS (see .gitattributes). Parquet files are NOT checked in --
+# regenerate them via each `<type>/generate.py` (deterministic, seed 42).
 *.parquet
-*.jsonl
 
-# Stray/ad-hoc generator outputs at the repo root
-/data/
+# Example scratch outputs (regenerate via examples/06_payload_score_comparison.py)
 /balanced_datasets/
-
-# Keep source caches so regeneration doesn't require re-fetching from network
-!pdf/data/arxiv_papers.json
-!image/data/wikipedia_images.json

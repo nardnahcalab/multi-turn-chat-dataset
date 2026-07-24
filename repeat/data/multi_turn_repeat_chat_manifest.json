@@ -1,9 +1,9 @@
 {
   "manifest_version": "1.0.0",
-  "generated_at": "2026-05-26T22:50:37.064616+00:00",
+  "generated_at": "2026-07-24T02:00:41.675877+00:00",
   "dataset": {
     "name": "multi-turn-repeat-chat",
-    "descriptive_name": "multi_turn_repeat",
+    "descriptive_name": "multi_turn_repeat_chat_n500_s42_v1.0.0_20260724",
     "type": "repeat",
     "version": "1.0.0",
     "description": "Synthetic multi-turn repetitive-text conversations for benchmarking inference with highly compressible content",
@@ -50,9 +50,9 @@
     ]
   },
   "output_files": {
-    "aiperf_multi_turn": "repeat/data/multi_turn_repeat_chat.jsonl",
-    "aiperf_mooncake_trace": "repeat/data/multi_turn_repeat_chat_mooncake.jsonl",
-    "parquet": "repeat/data/multi_turn_repeat_chat.parquet"
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/repeat/data/multi_turn_repeat_chat.parquet",
+    "aiperf_multi_turn": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/repeat/data/multi_turn_repeat_chat.jsonl",
+    "mooncake_trace": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/repeat/data/multi_turn_repeat_chat_mooncake.jsonl"
   },
   "distribution_profile": {
     "turn_distribution": {
@@ -135,60 +135,60 @@
       ]
     },
     "token_distribution": {
-      "total": 4789638,
-      "min": 113,
-      "max": 32633,
-      "mean": 9579.28,
-      "median": 7684.0,
-      "stdev": 7705.81,
+      "total": 3646316,
+      "min": 92,
+      "max": 24377,
+      "mean": 7292.63,
+      "median": 5847.0,
+      "stdev": 5797.56,
       "percentiles": {
-        "p5": 708.0,
-        "p25": 3132.0,
-        "p50": 7684.0,
-        "p75": 14672.75,
-        "p95": 24772.75,
-        "p99": 28200.65
+        "p5": 594.35,
+        "p25": 2393.0,
+        "p50": 5847.0,
+        "p75": 11402.25,
+        "p95": 18634.8,
+        "p99": 21742.48
       },
       "histogram": [
         {
-          "range": "113.0-3365.0",
+          "range": "92.0-2520.5",
           "count": 131
         },
         {
-          "range": "3365.0-6617.0",
-          "count": 94
+          "range": "2520.5-4949.0",
+          "count": 90
         },
         {
-          "range": "6617.0-9869.0",
-          "count": 74
+          "range": "4949.0-7377.5",
+          "count": 76
         },
         {
-          "range": "9869.0-13121.0",
+          "range": "7377.5-9806.0",
           "count": 49
         },
         {
-          "range": "13121.0-16373.0",
-          "count": 56
+          "range": "9806.0-12234.5",
+          "count": 49
         },
         {
-          "range": "16373.0-19625.0",
-          "count": 26
+          "range": "12234.5-14663.0",
+          "count": 37
         },
         {
-          "range": "19625.0-22877.0",
-          "count": 26
+          "range": "14663.0-17091.5",
+          "count": 28
         },
         {
-          "range": "22877.0-26129.0",
-          "count": 25
+          "range": "17091.5-19520.0",
+          "count": 20
         },
         {
-          "range": "26129.0-29381.0",
-          "count": 16
+          "range": "19520.0-21948.5",
+          "count": 15
         },
         {
-          "range": "29381.0-32633.0",
-          "count": 3
+          "range": "21948.5-24377.0",
+          "count": 5
         }
       ]
     },
@@ -262,18 +262,18 @@
     }
   },
   "payload_scores": {
-    "prefill_score": 0.5215,
-    "decode_score": 0.5067,
-    "total_payload_score": 0.5141,
+    "prefill_score": 0.4758,
+    "decode_score": 0.4701,
+    "total_payload_score": 0.4729,
     "prefill_breakdown": {
       "normalized": {
-        "total_tokens": 0.4789638,
+        "total_tokens": 0.3646316,
         "avg_context_size": 0.76637204,
         "multimodal_penalty": 0.0,
         "context_growth": 1.0
       },
       "raw": {
-        "total_tokens": 4789638,
+        "total_tokens": 3646316,
         "avg_context_size": 38318.602,
         "multimodal_penalty": 0.0,
         "context_growth": 29.650552635973252
@@ -281,13 +281,13 @@
     },
     "decode_breakdown": {
       "normalized": {
-        "total_response_tokens": 0.38317104,
+        "total_response_tokens": 0.29170528,
         "num_turns": 0.9301,
         "avg_response_length": 0.37204,
         "tool_call_penalty": 0.0
       },
       "raw": {
-        "total_response_tokens": 1915855.2000000002,
+        "total_response_tokens": 1458526.4000000001,
         "num_turns": 9301,
         "avg_response_length": 18.602,
         "tool_call_penalty": 0.0

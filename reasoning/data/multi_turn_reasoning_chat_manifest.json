@@ -1,9 +1,9 @@
 {
   "manifest_version": "1.0.0",
-  "generated_at": "2026-05-26T22:50:36.919198+00:00",
+  "generated_at": "2026-07-24T02:00:21.156499+00:00",
   "dataset": {
     "name": "multi-turn-reasoning-chat",
-    "descriptive_name": "multi_turn_reasoning",
+    "descriptive_name": "multi_turn_reasoning_chat_n500_s42_v1.0.0_20260724",
     "type": "reasoning",
     "version": "1.0.0",
     "description": "Synthetic multi-turn deep reasoning conversations for benchmarking inference with extended thinking",
@@ -26,12 +26,12 @@
       "reasoning",
       "medium",
       "n500",
-      "5M+-tokens",
+      "1M-5M-tokens",
       "very-long-context",
       "deep-reasoning"
     ],
     "all_tags": [
-      "5M+-tokens",
+      "1M-5M-tokens",
       "benchmarking",
       "deep-reasoning",
       "extended-thinking",
@@ -48,9 +48,9 @@
     ]
   },
   "output_files": {
-    "aiperf_multi_turn": "reasoning/data/multi_turn_reasoning_chat.jsonl",
-    "aiperf_mooncake_trace": "reasoning/data/multi_turn_reasoning_chat_mooncake.jsonl",
-    "parquet": "reasoning/data/multi_turn_reasoning_chat.parquet"
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/reasoning/data/multi_turn_reasoning_chat.parquet",
+    "aiperf_multi_turn": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/reasoning/data/multi_turn_reasoning_chat.jsonl",
+    "mooncake_trace": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/reasoning/data/multi_turn_reasoning_chat_mooncake.jsonl"
   },
   "distribution_profile": {
     "turn_distribution": {
@@ -133,60 +133,60 @@
       ]
     },
     "token_distribution": {
-      "total": 5800452,
-      "min": 222,
-      "max": 36132,
-      "mean": 11600.9,
-      "median": 10146.0,
-      "stdev": 7972.1,
+      "total": 4606844,
+      "min": 177,
+      "max": 28769,
+      "mean": 9213.69,
+      "median": 8091.5,
+      "stdev": 6327.9,
       "percentiles": {
-        "p5": 1188.4,
-        "p25": 5226.0,
-        "p50": 10146.0,
-        "p75": 16152.5,
-        "p95": 28350.05,
-        "p99": 31987.97
+        "p5": 928.6,
+        "p25": 4078.75,
+        "p50": 8091.5,
+        "p75": 12966.75,
+        "p95": 22771.2,
+        "p99": 25488.43
       },
       "histogram": [
         {
-          "range": "222.0-3813.0",
-          "count": 86
+          "range": "177.0-3036.2",
+          "count": 85
         },
         {
-          "range": "3813.0-7404.0",
-          "count": 98
+          "range": "3036.2-5895.4",
+          "count": 99
         },
         {
-          "range": "7404.0-10995.0",
-          "count": 89
+          "range": "5895.4-8754.6",
+          "count": 87
         },
         {
-          "range": "10995.0-14586.0",
-          "count": 72
+          "range": "8754.6-11613.8",
+          "count": 74
         },
         {
-          "range": "14586.0-18177.0",
-          "count": 60
+          "range": "11613.8-14473.0",
+          "count": 62
         },
         {
-          "range": "18177.0-21768.0",
-          "count": 38
+          "range": "14473.0-17332.2",
+          "count": 36
         },
         {
-          "range": "21768.0-25359.0",
+          "range": "17332.2-20191.4",
           "count": 17
         },
         {
-          "range": "25359.0-28950.0",
-          "count": 17
+          "range": "20191.4-23050.6",
+          "count": 20
         },
         {
-          "range": "28950.0-32541.0",
-          "count": 18
+          "range": "23050.6-25909.8",
+          "count": 16
         },
         {
-          "range": "32541.0-36132.0",
-          "count": 5
+          "range": "25909.8-28769.0",
+          "count": 4
         }
       ]
     },
@@ -275,18 +275,18 @@
     }
   },
   "payload_scores": {
-    "prefill_score": 0.6104,
-    "decode_score": 0.4805,
-    "total_payload_score": 0.5455,
+    "prefill_score": 0.5627,
+    "decode_score": 0.4423,
+    "total_payload_score": 0.5025,
     "prefill_breakdown": {
       "normalized": {
-        "total_tokens": 0.5800452,
+        "total_tokens": 0.4606844,
         "avg_context_size": 0.928103,
         "multimodal_penalty": 0.0,
         "context_growth": 1.0
       },
       "raw": {
-        "total_tokens": 5800452,
+        "total_tokens": 4606844,
         "avg_context_size": 46405.15,
         "multimodal_penalty": 0.0,
         "context_growth": 21.322704706125457
@@ -294,13 +294,13 @@
     },
     "decode_breakdown": {
       "normalized": {
-        "total_response_tokens": 0.46403616000000003,
+        "total_response_tokens": 0.36854752,
         "num_turns": 0.776,
         "avg_response_length": 0.3104,
         "tool_call_penalty": 0.0
       },
       "raw": {
-        "total_response_tokens": 2320180.8000000003,
+        "total_response_tokens": 1842737.6,
         "num_turns": 7760,
         "avg_response_length": 15.52,
         "tool_call_penalty": 0.0

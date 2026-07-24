@@ -1,9 +1,9 @@
 {
   "manifest_version": "1.0.0",
-  "generated_at": "2026-07-23T20:20:08.591918+00:00",
+  "generated_at": "2026-07-24T02:00:08.513613+00:00",
   "dataset": {
     "name": "multi-turn-text-chat",
-    "descriptive_name": "multi_turn_text_chat_n500_s42_v1.0.0_20260723",
+    "descriptive_name": "multi_turn_text_chat_n500_s42_v1.0.0_20260724",
     "type": "text",
     "version": "1.0.0",
     "description": "Synthetic multi-turn text conversations for benchmarking inference with prefix caching",
@@ -45,7 +45,9 @@
     ]
   },
   "output_files": {
-    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat.parquet"
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat.parquet",
+    "aiperf_multi_turn": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat.jsonl",
+    "mooncake_trace": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/text/data/multi_turn_text_chat_mooncake.jsonl"
   },
   "distribution_profile": {
     "turn_distribution": {
@@ -128,60 +130,60 @@
       ]
     },
     "token_distribution": {
-      "total": 3945154,
-      "min": 86,
-      "max": 25797,
-      "mean": 7890.31,
-      "median": 6148.5,
-      "stdev": 6497.44,
+      "total": 3157655,
+      "min": 77,
+      "max": 20078,
+      "mean": 6315.31,
+      "median": 4909.0,
+      "stdev": 5166.27,
       "percentiles": {
-        "p5": 536.0,
-        "p25": 2394.5,
-        "p50": 6148.5,
-        "p75": 12192.25,
-        "p95": 20994.0,
-        "p99": 23954.47
+        "p5": 481.6,
+        "p25": 1967.5,
+        "p50": 4909.0,
+        "p75": 9811.0,
+        "p95": 16759.45,
+        "p99": 18976.92
       },
       "histogram": [
         {
-          "range": "86.0-2657.1",
-          "count": 138
+          "range": "77.0-2077.1",
+          "count": 134
         },
         {
-          "range": "2657.1-5228.2",
+          "range": "2077.1-4077.2",
+          "count": 80
+        },
+        {
+          "range": "4077.2-6077.3",
           "count": 85
         },
         {
-          "range": "5228.2-7799.3",
-          "count": 77
-        },
-        {
-          "range": "7799.3-10370.4",
-          "count": 46
-        },
-        {
-          "range": "10370.4-12941.5",
+          "range": "6077.3-8077.4",
           "count": 44
         },
         {
-          "range": "12941.5-15512.6",
-          "count": 35
+          "range": "8077.4-10077.5",
+          "count": 38
         },
         {
-          "range": "15512.6-18083.7",
-          "count": 22
+          "range": "10077.5-12077.6",
+          "count": 37
         },
         {
-          "range": "18083.7-20654.8",
-          "count": 24
+          "range": "12077.6-14077.7",
+          "count": 25
         },
         {
-          "range": "20654.8-23225.9",
+          "range": "14077.7-16077.8",
+          "count": 25
+        },
+        {
+          "range": "16077.8-18077.9",
           "count": 19
         },
         {
-          "range": "23225.9-25797.0",
-          "count": 10
+          "range": "18077.9-20078.0",
+          "count": 13
         }
       ]
     },
@@ -270,18 +272,18 @@
     }
   },
   "payload_scores": {
-    "prefill_score": 0.4472,
-    "decode_score": 0.4836,
-    "total_payload_score": 0.4654,
+    "prefill_score": 0.4157,
+    "decode_score": 0.4584,
+    "total_payload_score": 0.437,
     "prefill_breakdown": {
       "normalized": {
-        "total_tokens": 0.3945154,
+        "total_tokens": 0.3157655,
         "avg_context_size": 0.63125284,
         "multimodal_penalty": 0.0,
         "context_growth": 1.0
       },
       "raw": {
-        "total_tokens": 3945154,
+        "total_tokens": 3157655,
         "avg_context_size": 31562.642,
         "multimodal_penalty": 0.0,
         "context_growth": 31.550875633152348
@@ -289,13 +291,13 @@
     },
     "decode_breakdown": {
       "normalized": {
-        "total_response_tokens": 0.31561232,
+        "total_response_tokens": 0.2526124,
         "num_turns": 0.9403,
         "avg_response_length": 0.37612,
         "tool_call_penalty": 0.0
       },
       "raw": {
-        "total_response_tokens": 1578061.6,
+        "total_response_tokens": 1263062.0,
         "num_turns": 9403,
         "avg_response_length": 18.806,
         "tool_call_penalty": 0.0

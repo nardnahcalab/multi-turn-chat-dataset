@@ -1,0 +1,267 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-07-24T02:01:56.673685+00:00",
+  "dataset": {
+    "name": "multi-turn-mixed-chat",
+    "descriptive_name": "multi_turn_mixed_chat_n500_s42_v1.0.0_20260724_mixed",
+    "type": "mixed",
+    "version": "1.0.0",
+    "description": "Mixed dataset combining text, pdf, image, reasoning, and agentic conversations for comprehensive benchmarking",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "mixed-dataset",
+      "multi-modal",
+      "comprehensive",
+      "payload-balanced"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "mixed",
+      "medium",
+      "n500",
+      "1M-5M-tokens",
+      "very-long-context",
+      "mixed-dataset",
+      "multi-source"
+    ],
+    "all_tags": [
+      "1M-5M-tokens",
+      "benchmarking",
+      "comprehensive",
+      "inference",
+      "medium",
+      "mixed",
+      "mixed-dataset",
+      "multi-modal",
+      "multi-source",
+      "multi-turn",
+      "n500",
+      "payload-balanced",
+      "prefix-caching",
+      "synthetic",
+      "very-long-context"
+    ]
+  },
+  "output_files": {
+    "parquet": "data/multi_turn_mixed_chat_n500_s42_v1.0.0_20260724_mixed.parquet",
+    "aiperf_multi_turn": "data/multi_turn_mixed_chat_n500_s42_v1.0.0_20260724_mixed.jsonl",
+    "aiperf_mooncake_trace": "data/multi_turn_mixed_chat_n500_s42_v1.0.0_20260724_mixed_mooncake.jsonl"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 50,
+      "mean": 12.79,
+      "median": 11.0,
+      "stdev": 9.52,
+      "percentiles": {
+        "p5": 2.0,
+        "p25": 5.0,
+        "p50": 11.0,
+        "p75": 18.0,
+        "p95": 30.0,
+        "p99": 43.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-5.9",
+          "count": 135
+        },
+        {
+          "range": "5.9-10.8",
+          "count": 113
+        },
+        {
+          "range": "10.8-15.7",
+          "count": 84
+        },
+        {
+          "range": "15.7-20.6",
+          "count": 75
+        },
+        {
+          "range": "20.6-25.5",
+          "count": 45
+        },
+        {
+          "range": "25.5-30.4",
+          "count": 25
+        },
+        {
+          "range": "30.4-35.3",
+          "count": 9
+        },
+        {
+          "range": "35.3-40.2",
+          "count": 5
+        },
+        {
+          "range": "40.2-45.1",
+          "count": 6
+        },
+        {
+          "range": "45.1-50.0",
+          "count": 3
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 135,
+          "percentage": 27.0
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 197,
+          "percentage": 39.4
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 145,
+          "percentage": 29.0
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 23,
+          "percentage": 4.6
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 2488233,
+      "min": 83,
+      "max": 25024,
+      "mean": 4976.47,
+      "median": 3700.5,
+      "stdev": 4670.97,
+      "percentiles": {
+        "p5": 237.65,
+        "p25": 882.75,
+        "p50": 3700.5,
+        "p75": 7812.5,
+        "p95": 13611.85,
+        "p99": 19444.4
+      },
+      "histogram": [
+        {
+          "range": "83.0-2577.1",
+          "count": 209
+        },
+        {
+          "range": "2577.1-5071.2",
+          "count": 93
+        },
+        {
+          "range": "5071.2-7565.3",
+          "count": 65
+        },
+        {
+          "range": "7565.3-10059.4",
+          "count": 55
+        },
+        {
+          "range": "10059.4-12553.5",
+          "count": 41
+        },
+        {
+          "range": "12553.5-15047.6",
+          "count": 22
+        },
+        {
+          "range": "15047.6-17541.7",
+          "count": 6
+        },
+        {
+          "range": "17541.7-20035.8",
+          "count": 5
+        },
+        {
+          "range": "20035.8-22529.9",
+          "count": 2
+        },
+        {
+          "range": "22529.9-25024.0",
+          "count": 2
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 13220646,
+      "min": 383,
+      "max": 126003,
+      "mean": 26441.29,
+      "median": 20182.0,
+      "stdev": 24127.67,
+      "percentiles": {
+        "p5": 1146.5,
+        "p25": 4978.75,
+        "p50": 20182.0,
+        "p75": 43069.75,
+        "p95": 70341.95,
+        "p99": 98460.42
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 101,
+      "mean": 26.29,
+      "median": 21.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 1.18,
+        "max": 234.63,
+        "mean": 17.62,
+        "median": 11.71
+      },
+      "first_turn_chars": {
+        "mean": 1984.77,
+        "median": 1742.5
+      },
+      "last_turn_chars": {
+        "mean": 27536.92,
+        "median": 22054.5
+      }
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.3582,
+    "decode_score": 0.3227,
+    "total_payload_score": 0.3404,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.2488233,
+        "avg_context_size": 0.52882584,
+        "multimodal_penalty": 0.0,
+        "context_growth": 1.0
+      },
+      "raw": {
+        "total_tokens": 2488233,
+        "avg_context_size": 26441.292,
+        "multimodal_penalty": 0.0,
+        "context_growth": 17.624419809791092
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.19905864,
+        "num_turns": 0.6397,
+        "avg_response_length": 0.25588,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 995293.2000000001,
+        "num_turns": 6397,
+        "avg_response_length": 12.794,
+        "tool_call_penalty": 0.0
+      }
+    }
+  }
+}
