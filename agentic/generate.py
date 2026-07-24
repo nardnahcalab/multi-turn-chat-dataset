@@ -28,7 +28,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Add project root to path for the shared modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from generator_base import BaseConversationGenerator, CHARS_PER_TOKEN
+from generator_base import (
+    BaseConversationGenerator,
+    count_message_tokens,
+    estimate_output_tokens,
+)
 
 # ---------------------------------------------------------------------------
 # Task-specific conversation templates
@@ -905,7 +909,7 @@ def generate_conversation(
         "messages": json.dumps(messages),
         "tool_calls": json.dumps(tool_calls_log),
         "total_characters": total_chars,
-        "estimated_tokens": total_chars // CHARS_PER_TOKEN,
+        "estimated_tokens": count_message_tokens(messages),
         "cumulative_char_lengths": json.dumps(cumulative_lengths),
         "success_metric": metric_name,
         "success_score": success_score,
@@ -983,7 +987,7 @@ class AgenticTaskGenerator(BaseConversationGenerator):
                     entries.append({
                         "session_id": conv["conversation_id"],
                         "messages": messages[: i + 2],
-                        "output_length": max(1, len(str(messages[i + 1]["content"])) // CHARS_PER_TOKEN),
+                        "output_length": estimate_output_tokens(messages[i + 1]["content"]),
                     })
         return entries
 

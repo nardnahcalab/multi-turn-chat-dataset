@@ -42,7 +42,7 @@ Four additional types round out the collection:
 | **repeat** | Text-only (repetitive) | Messages built from a word/phrase/pattern repeated many times — highly compressible content for tokenizer and prefix-cache testing |
 | **mixed** | Mixed | Loads and reshapes sibling dataset parquet files (text, pdf, image, reasoning, agentic) into a single combined dataset based on configurable weights |
 
-All token counts throughout this document use a simple **chars/4 heuristic** (`CHARS_PER_TOKEN = 4`); no real tokenizer is invoked.
+All token counts throughout this document are computed with a **real tokenizer** (tiktoken's `cl100k_base` encoding) when the `tiktoken` package is available, falling back to a simple `characters / 4` heuristic (`CHARS_PER_TOKEN = 4`) only when tiktoken is not installed (e.g. offline). `ACTIVE_TOKENIZER` reports which method is in use.
 
 ---
 
@@ -189,7 +189,7 @@ The generators follow an identical architectural pattern. Understanding one make
 | Turn-distribution sampling | `generate_dataset` (uniform `--num` override, or configured distribution buckets + shuffle) |
 | Seed-reproducible IDs | `new_conversation_id` (UUIDv4 drawn from the generator RNG) |
 | aiperf JSONL writers | `to_aiperf_multi_turn` (user turns only), `to_aiperf_mooncake` (full context per assistant turn) |
-| Token estimation | `CHARS_PER_TOKEN = 4`, `estimate_tokens`, `estimate_output_tokens` — the single source of truth for the chars/4 heuristic (no real tokenizer) |
+| Token estimation | `count_tokens`, `count_message_tokens`, `estimate_output_tokens`, `ACTIVE_TOKENIZER` — the single source of truth for token counting; uses tiktoken `cl100k_base` when available, falling back to the `characters / 4` heuristic (`CHARS_PER_TOKEN = 4`) when tiktoken is not installed |
 | CLI orchestration | classmethod `main()` handling arg parsing, config loading, generation, and `write_outputs` (Parquet + JSONL + manifest) |
 
 Manifest/profiling and descriptive-naming helpers are imported from the shared `dataset_profile.py` module (see below).
@@ -825,7 +825,7 @@ All messages are text-only (no multimodal content):
 
 ## Agentic Task Dataset Generator
 
-The agentic task generator (`agentic/generate.py`, 996 lines) creates synthetic multi-turn conversations where agents execute high-level goals using tool calls, error recovery, and iterative refinement. It generates 500 conversations totaling ~191K estimated tokens (chars/4 heuristic).
+The agentic task generator (`agentic/generate.py`, 996 lines) creates synthetic multi-turn conversations where agents execute high-level goals using tool calls, error recovery, and iterative refinement. It generates 500 conversations totaling ~191K estimated tokens (counted with tiktoken `cl100k_base` when available, or a `characters / 4` fallback when tiktoken is not installed).
 
 ### Design Overview
 
@@ -896,7 +896,7 @@ Each task type has a metric with configurable partial credit penalties:
 | `system_prompt` | string | System-level instruction |
 | `messages` | string (JSON) | Full message array |
 | `total_characters` | int | Character count of entire conversation |
-| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `estimated_tokens` | int | Token count via tiktoken `cl100k_base` when available, falling back to a `characters / 4` heuristic if tiktoken is not installed |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 
 **Text-specific columns**:
@@ -982,7 +982,7 @@ One JSON object per line, **one line per assistant turn** (not per conversation)
 }
 ```
 
-- `output_length`: Estimated output tokens for this turn (`max(1, len(content) // 4)`)
+- `output_length`: Estimated output tokens for this turn, computed via `estimate_output_tokens` (tiktoken `cl100k_base` token count of the content when available, falling back to `max(1, len(content) // 4)` when tiktoken is not installed)
 - `delay`: Inter-turn delay in seconds (0 for all turns after the first)
 - For PDF/image: first user message preserves the full multimodal content structure
 

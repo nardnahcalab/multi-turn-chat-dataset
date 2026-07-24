@@ -23,7 +23,7 @@ from pathlib import Path
 
 # Add project root to path for shared module
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from generator_base import BaseConversationGenerator, CHARS_PER_TOKEN
+from generator_base import BaseConversationGenerator, count_message_tokens
 
 # ---------------------------------------------------------------------------
 # Topic-specific conversation templates
@@ -1014,7 +1014,7 @@ class ReasoningConversationGenerator(BaseConversationGenerator):
             "system_prompt": system_prompt,
             "messages": json.dumps(messages),
             "total_characters": running_chars,
-            "estimated_tokens": running_chars // CHARS_PER_TOKEN,  # rough approximation
+            "estimated_tokens": count_message_tokens(messages),
             "cumulative_char_lengths": json.dumps(cumulative_char_lengths),
         }
 

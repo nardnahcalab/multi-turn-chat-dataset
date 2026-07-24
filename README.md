@@ -279,7 +279,7 @@ Conversations span 6 agent task domains:
 | `messages` | string (JSON) | Full message array with tool calls and results |
 | `tool_calls` | string (JSON) | Detailed log of all tool invocations and results |
 | `total_characters` | int | Character count of entire conversation |
-| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `estimated_tokens` | int | Token count computed with a real tokenizer (tiktoken `cl100k_base`) when available, falling back to a `characters / 4` heuristic if tiktoken is not installed |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 | `success_metric` | string | Metric used to evaluate task completion |
 | `success_score` | float | Success score (0.0-1.0) with partial credit penalties |
@@ -494,7 +494,7 @@ JSONL schema (one line per turn):
 | `system_prompt` | string | System-level instruction for the conversation |
 | `messages` | string (JSON) | Full message array: `[{"role": "system\|user\|assistant", "content": "..."}]` |
 | `total_characters` | int | Character count of entire conversation |
-| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `estimated_tokens` | int | Token count computed with a real tokenizer (tiktoken `cl100k_base`) when available, falling back to a `characters / 4` heuristic if tiktoken is not installed |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 
 ### Topics
@@ -761,7 +761,7 @@ The image dataset has 15 columns (in order):
 | `system_prompt` | string | System-level instruction for the conversation |
 | `messages` | string (JSON) | First user message uses `image_url` multimodal format |
 | `total_characters` | int | Character count of entire conversation |
-| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `estimated_tokens` | int | Token count computed with a real tokenizer (tiktoken `cl100k_base`) when available, falling back to a `characters / 4` heuristic if tiktoken is not installed |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 
 ### Default Dataset Stats
@@ -856,7 +856,7 @@ Uses the same schema as the text dataset:
 | `system_prompt` | string | Reasoning-focused system instruction |
 | `messages` | string (JSON) | Full message array with chain-of-thought responses |
 | `total_characters` | int | Character count of entire conversation |
-| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `estimated_tokens` | int | Token count computed with a real tokenizer (tiktoken `cl100k_base`) when available, falling back to a `characters / 4` heuristic if tiktoken is not installed |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 
 ### Turn Distribution
@@ -966,7 +966,7 @@ Uses the same schema as the text dataset:
 | `system_prompt` | string | System-level instruction |
 | `messages` | string (JSON) | Full message array |
 | `total_characters` | int | Character count of entire conversation |
-| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `estimated_tokens` | int | Token count computed with a real tokenizer (tiktoken `cl100k_base`) when available, falling back to a `characters / 4` heuristic if tiktoken is not installed |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 
 ### Turn Distribution
@@ -1076,7 +1076,7 @@ Uses the same schema as the text dataset:
 | `system_prompt` | string | System-level instruction |
 | `messages` | string (JSON) | Full message array |
 | `total_characters` | int | Character count of entire conversation |
-| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `estimated_tokens` | int | Token count computed with a real tokenizer (tiktoken `cl100k_base`) when available, falling back to a `characters / 4` heuristic if tiktoken is not installed |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 
 ### Turn Distribution

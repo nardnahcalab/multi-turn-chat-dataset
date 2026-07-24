@@ -217,7 +217,9 @@ row = df.iloc[0]
 cumulative_lengths = json.loads(row['cumulative_char_lengths'])
 
 for i, char_count in enumerate(cumulative_lengths):
-    token_count = char_count // 4  # Rough estimation
+    token_count = char_count // 4  # Rough char-based estimate; the dataset's
+    # `estimated_tokens` column is computed with a real tokenizer (tiktoken
+    # `cl100k_base`) when available, falling back to `characters / 4` otherwise.
     print(f"Turn {i+1}: {char_count:,} chars (~{token_count:,} tokens)")
 ```
 

@@ -10,6 +10,7 @@ import json
 import pytest
 
 from conftest import DATASETS, make_generator
+from generator_base import content_to_text, count_tokens
 
 CORE_COLUMNS = {
     "conversation_id", "num_turns", "num_messages", "system_prompt",
@@ -58,10 +59,13 @@ def test_messages_valid_json_starting_with_system(dataset_sample):
         assert conv["num_messages"] == len(messages)
 
 
-def test_token_estimate_matches_char_heuristic(dataset_sample):
+def test_estimated_tokens_match_tokenizer(dataset_sample):
     _, _, conversations = dataset_sample
     for conv in conversations:
-        assert conv["estimated_tokens"] == conv["total_characters"] // 4
+        messages = json.loads(conv["messages"])
+        expected = sum(count_tokens(content_to_text(m.get("content", ""))) for m in messages)
+        assert conv["estimated_tokens"] == expected
+        assert conv["estimated_tokens"] > 0
 
 
 def test_cumulative_char_lengths_are_monotonic(dataset_sample):

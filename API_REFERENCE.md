@@ -28,7 +28,7 @@ Complete API reference for the multi-turn-chat-dataset project. This document co
 | `system_prompt` | string | System-level instruction | `"You are a helpful coding assistant..."` |
 | `messages` | string (JSON) | Full message array | `[{"role": "system", "content": "..."}, ...]` |
 | `total_characters` | int | Character count of entire conversation | `3245` |
-| `estimated_tokens` | int | Approximate token count (~chars/4) | `811` |
+| `estimated_tokens` | int | Token count via tiktoken `cl100k_base` when available, falling back to `characters / 4` if tiktoken is not installed | `811` |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn | `[245, 512, 1024, ...]` |
 
 **Message Structure**:
@@ -97,7 +97,7 @@ Full schema (15 columns):
 | `system_prompt` | string | System-level instruction | `"You are a helpful visual analysis assistant..."` |
 | `messages` | string (JSON) | Full message array | `[{"role": "system", "content": "..."}, ...]` |
 | `total_characters` | int | Character count of entire conversation | `3245` |
-| `estimated_tokens` | int | Approximate token count (~chars/4) | `811` |
+| `estimated_tokens` | int | Token count via tiktoken `cl100k_base` when available, falling back to `characters / 4` if tiktoken is not installed | `811` |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn | `[245, 512, 1024, ...]` |
 
 **Conversation Types** (7 types):
@@ -130,7 +130,7 @@ Uses the same schema as the text dataset. The `topic` column contains reasoning-
 | `system_prompt` | string | System-level instruction | `"You are a reasoning assistant..."` |
 | `messages` | string (JSON) | Full message array | `[{"role": "system", "content": "..."}, ...]` |
 | `total_characters` | int | Character count of entire conversation | `8245` |
-| `estimated_tokens` | int | Approximate token count (~chars/4) | `2061` |
+| `estimated_tokens` | int | Token count via tiktoken `cl100k_base` when available, falling back to `characters / 4` if tiktoken is not installed | `2061` |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn | `[245, 512, 1024, ...]` |
 
 **Topics** (8 types):
@@ -159,7 +159,7 @@ Uses the same schema as the text dataset. The `topic` column contains reasoning-
 | `messages` | string (JSON) | Full message array with tool calls | `[{"role": "system", "content": "..."}, ...]` |
 | `tool_calls` | string (JSON) | Detailed log of all tool invocations | `[{"tool": "query_database", "result": {...}}, ...]` |
 | `total_characters` | int | Character count of entire conversation | `2845` |
-| `estimated_tokens` | int | Approximate token count | `711` |
+| `estimated_tokens` | int | Token count via tiktoken `cl100k_base` when available, falling back to `characters / 4` if tiktoken is not installed | `711` |
 | `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts | `[245, 512, 1024, ...]` |
 | `success_metric` | string | Metric used to evaluate task completion | `"data_integrity_score"` |
 | `success_score` | float | Success score (0.0-1.0) with partial credit penalties | `0.85` |

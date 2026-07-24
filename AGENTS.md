@@ -40,8 +40,12 @@ CI (`.github/workflows/ci.yml`) runs the suite on Python 3.11/3.12 plus offline
 generator smoke tests.
 
 ## Conventions
-- Token counts use the `chars // 4` heuristic (`CHARS_PER_TOKEN` in
-  `generator_base.py`) — a deliberate approximation, not a real tokenizer.
+- Token counts (`estimated_tokens`, mooncake `output_length`) use a real
+  tokenizer: tiktoken's `cl100k_base` when installed, falling back to the
+  `chars // 4` heuristic (`CHARS_PER_TOKEN`) only when tiktoken is unavailable
+  (e.g. offline). Counting goes through `count_tokens` / `count_message_tokens`
+  in `generator_base.py`; `ACTIVE_TOKENIZER` reports which is in use. Note token
+  values therefore depend on whether tiktoken is available in the environment.
 - Conversation IDs are seed-reproducible (`BaseConversationGenerator.new_conversation_id`).
 - When adding a dataset type, subclass `BaseConversationGenerator`, set
   `dataset_type`, implement `generate_conversation`, and delegate `main()`.

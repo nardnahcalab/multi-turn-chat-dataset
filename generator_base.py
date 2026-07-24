@@ -38,19 +38,61 @@ from dataset_profile import (
 # Token estimation (single source of truth)
 # ---------------------------------------------------------------------------
 
-#: Rough characters-per-token heuristic used for all token estimates. This is a
-#: deliberate approximation (no real tokenizer); see the project docs.
+#: Fallback characters-per-token heuristic, used only when a real tokenizer is
+#: unavailable (tiktoken not installed, or its vocab can't be loaded offline).
 CHARS_PER_TOKEN = 4
+
+#: tiktoken encoding used when available. cl100k_base matches GPT-3.5/4-class
+#: tokenization and is a reasonable default for benchmarking estimates.
+_TIKTOKEN_ENCODING = "cl100k_base"
+
+
+def _load_encoder():
+    """Return (encoder, name). Falls back to the chars/4 heuristic on any
+    failure (missing package or vocab download failure in offline envs)."""
+    try:
+        import tiktoken
+        return tiktoken.get_encoding(_TIKTOKEN_ENCODING), f"tiktoken:{_TIKTOKEN_ENCODING}"
+    except Exception:
+        return None, f"chars-per-{CHARS_PER_TOKEN}"
+
+
+_ENCODER, ACTIVE_TOKENIZER = _load_encoder()
+
+
+def count_tokens(text) -> int:
+    """Count tokens using tiktoken when available, else the chars/4 heuristic."""
+    s = text if isinstance(text, str) else str(text)
+    if _ENCODER is not None:
+        return len(_ENCODER.encode(s))
+    return len(s) // CHARS_PER_TOKEN
 
 
 def estimate_tokens(text) -> int:
-    """Estimate token count from character length (the chars/4 heuristic)."""
-    return len(str(text)) // CHARS_PER_TOKEN
+    """Estimate the token count of a single string (or stringifiable value)."""
+    return count_tokens(text)
 
 
 def estimate_output_tokens(text) -> int:
-    """Like :func:`estimate_tokens` but never returns 0 (min 1 decode token)."""
-    return max(1, estimate_tokens(text))
+    """Like :func:`count_tokens` but never returns 0 (min 1 decode token)."""
+    return max(1, count_tokens(text))
+
+
+def content_to_text(content) -> str:
+    """Flatten a message ``content`` (possibly multimodal) to its text for
+    token counting. Non-text multimodal parts (file/image URLs) are ignored."""
+    if isinstance(content, list):
+        return " ".join(
+            part.get("text", "")
+            for part in content
+            if isinstance(part, dict) and part.get("type") == "text"
+        )
+    return str(content)
+
+
+def count_message_tokens(messages) -> int:
+    """Total estimated tokens across a list of chat messages."""
+    return sum(count_tokens(content_to_text(m.get("content", ""))) for m in messages)
 
 
 # ---------------------------------------------------------------------------

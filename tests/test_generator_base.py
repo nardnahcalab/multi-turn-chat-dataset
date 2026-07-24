@@ -10,35 +10,65 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from generator_base import (
     CHARS_PER_TOKEN,
+    ACTIVE_TOKENIZER,
     BaseConversationGenerator,
+    content_to_text,
+    count_message_tokens,
+    count_tokens,
     estimate_output_tokens,
     estimate_tokens,
 )
 
-
-def test_chars_per_token_is_four():
-    assert CHARS_PER_TOKEN == 4
+_USING_TIKTOKEN = ACTIVE_TOKENIZER.startswith("tiktoken")
 
 
-@pytest.mark.parametrize("text,expected", [
-    ("", 0),
-    ("abc", 0),      # 3 // 4
-    ("abcd", 1),     # 4 // 4
-    ("a" * 40, 10),
-])
-def test_estimate_tokens(text, expected):
-    assert estimate_tokens(text) == expected
+def test_count_tokens_matches_active_tokenizer():
+    text = "Hello, world! This is a test of the tokenizer."
+    if _USING_TIKTOKEN:
+        import tiktoken
+        enc = tiktoken.get_encoding("cl100k_base")
+        assert count_tokens(text) == len(enc.encode(text))
+    else:
+        assert count_tokens(text) == len(text) // CHARS_PER_TOKEN
+
+
+def test_count_tokens_scales_with_length():
+    assert count_tokens("") == 0
+    assert count_tokens("word " * 100) > count_tokens("word " * 10)
+
+
+def test_estimate_tokens_delegates_to_count_tokens():
+    assert estimate_tokens("some sample text") == count_tokens("some sample text")
 
 
 def test_estimate_output_tokens_min_one():
     assert estimate_output_tokens("") == 1
-    assert estimate_output_tokens("abc") == 1
-    assert estimate_output_tokens("a" * 40) == 10
+    assert estimate_output_tokens("a") >= 1
+    long_text = "the quick brown fox " * 20
+    assert estimate_output_tokens(long_text) == max(1, count_tokens(long_text))
 
 
-def test_estimate_tokens_accepts_non_str():
-    # multimodal content can be a list; helper must not crash
-    assert estimate_tokens(["x", "y"]) == len(str(["x", "y"])) // CHARS_PER_TOKEN
+def test_count_tokens_accepts_non_str():
+    # multimodal content can be a list; helper must stringify, not crash
+    assert count_tokens(["x", "y"]) == count_tokens(str(["x", "y"]))
+
+
+def test_content_to_text_flattens_multimodal():
+    multimodal = [
+        {"type": "text", "text": "describe this"},
+        {"type": "image_url", "image_url": {"url": "http://x/y.png"}},
+    ]
+    assert content_to_text(multimodal) == "describe this"
+    assert content_to_text("plain string") == "plain string"
+
+
+def test_count_message_tokens_sums_text_content():
+    messages = [
+        {"role": "system", "content": "you are helpful"},
+        {"role": "user", "content": "hello there"},
+    ]
+    expected = count_tokens("you are helpful") + count_tokens("hello there")
+    assert count_message_tokens(messages) == expected
 
 
 def test_new_conversation_id_is_seed_reproducible():
@@ -83,11 +113,11 @@ def test_to_aiperf_mooncake_context_and_delay():
     # first assistant turn: no delay, full context up to it (3 messages)
     assert len(entries[0]["messages"]) == 3
     assert "delay" not in entries[0]
-    assert entries[0]["output_length"] == 10
-    # second turn: delay=0, context grows, output_length = 8//4
+    assert entries[0]["output_length"] == estimate_output_tokens("a" * 40)
+    # second turn: delay=0, context grows
     assert len(entries[1]["messages"]) == 5
     assert entries[1]["delay"] == 0
-    assert entries[1]["output_length"] == 2
+    assert entries[1]["output_length"] == estimate_output_tokens("b" * 8)
 
 
 def test_default_jsonl_ensure_ascii_is_false():
