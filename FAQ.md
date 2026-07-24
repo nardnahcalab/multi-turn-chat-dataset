@@ -371,13 +371,15 @@ python examples/03_prepare_for_benchmarking.py --dataset text --format filtered 
 
 ### Q: The dataset is too large for my memory. What should I do?
 
-**A:** Process in chunks:
+**A:** Process in batches:
 
 ```python
-import pandas as pd
+import pyarrow.parquet as pq
 
-# Load in chunks of 100 conversations
-for chunk in pd.read_parquet("text/data/multi_turn_text_chat.parquet", chunksize=100):
+# Read in batches of 1000 conversations
+pf = pq.ParquetFile("text/data/multi_turn_text_chat.parquet")
+for batch in pf.iter_batches(batch_size=1000):
+    chunk = batch.to_pandas()
     # Process chunk
     print(f"Processing {len(chunk)} conversations")
     # Your analysis here
@@ -462,10 +464,14 @@ python text/generate.py --format aiperf
 
 ### Q: "MemoryError: Unable to allocate X GB"
 
-**A:** Use chunked processing:
+**A:** Use batched processing:
 
 ```python
-for chunk in pd.read_parquet("text/data/multi_turn_text_chat.parquet", chunksize=50):
+import pyarrow.parquet as pq
+
+pf = pq.ParquetFile("text/data/multi_turn_text_chat.parquet")
+for batch in pf.iter_batches(batch_size=1000):
+    chunk = batch.to_pandas()
     # Process chunk
     pass
 ```
@@ -601,7 +607,6 @@ See the repository's CONTRIBUTING.md for details.
 - [EXAMPLES.md](EXAMPLES.md) - Comprehensive examples
 - [API_REFERENCE.md](API_REFERENCE.md) - Technical API reference
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and architecture
-- [CHECKPOINT.md](CHECKPOINT.md) - Implementation details
 
 ---
 

@@ -530,7 +530,7 @@ Source Distribution:
 
 ---
 
-## Example 5: Payload Score Comparison
+## Example 6: Payload Score Comparison
 
 **File**: `examples/06_payload_score_comparison.py`
 
@@ -762,37 +762,7 @@ print(f"  Total: {df['estimated_tokens'].sum():,}")
 
 ## Troubleshooting
 
-### "Dataset not found" Error
-
-```bash
-# Generate the dataset first
-python text/generate.py
-python agentic/generate.py
-python pdf/generate.py
-python image/generate.py
-python reasoning/generate.py
-```
-
-### Out of Memory
-
-```python
-# Process in chunks instead of loading entire dataset
-import pandas as pd
-
-for chunk in pd.read_parquet("text/data/multi_turn_text_chat.parquet", chunksize=100):
-    # Process chunk
-    print(f"Processing {len(chunk)} conversations")
-```
-
-### Slow Performance
-
-```python
-# Use specific columns only
-df = pd.read_parquet(
-    "text/data/multi_turn_text_chat.parquet",
-    columns=['conversation_id', 'num_turns', 'estimated_tokens']
-)
-```
+See the Troubleshooting section in [FAQ.md](FAQ.md).
 
 ---
 
@@ -807,4 +777,3 @@ df = pd.read_parquet(
 For more information, see:
 - [README.md](README.md) - User guide and quick start
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Technical reference
-- [CHECKPOINT.md](CHECKPOINT.md) - Implementation details

@@ -168,84 +168,31 @@ python examples/03_prepare_for_benchmarking.py --dataset text
 python examples/04_agentic_analysis.py
 ```
 
-### Example 1: Load and Inspect Datasets
+### What Each Example Does
+
+The `examples/` directory contains runnable scripts (full walkthroughs live in **[EXAMPLES.md](EXAMPLES.md)**):
+
+- **`01_load_and_inspect.py`** — load a dataset, inspect conversations, tags, and profile
+- **`02_analyze_conversations.py`** — analyze context growth turn-by-turn
+- **`03_prepare_for_benchmarking.py`** — create subsets/filtered sets and estimate benchmark time
+- **`04_agentic_analysis.py`** — analyze agentic tasks, tool calls, and success metrics
+- **`05_dataset_profile.py`** — dataset profiling, tagging, and side-by-side comparison
+- **`06_payload_score_comparison.py`** — compare payload (prefill/decode) scores across datasets
+
+Quick start — load a dataset and print a conversation:
 
 ```python
 import pandas as pd
 import json
 
-# Load dataset
 df = pd.read_parquet("text/data/multi_turn_text_chat.parquet")
-
-# Basic info
 print(f"Conversations: {len(df)}")
 print(f"Total tokens: {df['estimated_tokens'].sum():,}")
 
-# Access a conversation
 row = df.iloc[0]
-messages = json.loads(row["messages"])
-
-# Print messages
-for msg in messages:
+for msg in json.loads(row["messages"]):
     print(f"[{msg['role']}] {msg['content'][:100]}...")
 ```
-
-**See**: `examples/01_load_and_inspect.py` for complete example
-
-### Example 2: Analyze Context Growth
-
-```python
-import json
-
-row = df.iloc[0]
-cumulative_lengths = json.loads(row["cumulative_char_lengths"])
-
-# Track context growth
-for i, char_count in enumerate(cumulative_lengths):
-    token_count = char_count // 4
-    print(f"Turn {i+1}: {char_count:,} chars (~{token_count:,} tokens)")
-```
-
-**See**: `examples/02_analyze_conversations.py` for complete example
-
-### Example 3: Prepare for Benchmarking
-
-```bash
-# Create a subset for testing
-python examples/03_prepare_for_benchmarking.py \
-    --dataset text \
-    --format subset \
-    --num-samples 100
-
-# Filter by turn count
-python examples/03_prepare_for_benchmarking.py \
-    --dataset text \
-    --format filtered \
-    --min-turns 5 \
-    --max-turns 15
-
-# Estimate benchmark time
-python examples/03_prepare_for_benchmarking.py \
-    --dataset text \
-    --tokens-per-sec 100
-```
-
-**See**: `examples/03_prepare_for_benchmarking.py` for complete example
-
-### Example 4: Analyze Agentic Tasks
-
-```bash
-# Full analysis
-python examples/04_agentic_analysis.py
-
-# Compare conversations
-python examples/04_agentic_analysis.py --compare 0 1
-
-# Export report
-python examples/04_agentic_analysis.py --report
-```
-
-**See**: `examples/04_agentic_analysis.py` for complete example
 
 ### More Documentation
 
@@ -265,7 +212,7 @@ Multi-turn conversations where agents execute high-level goals using tool calls,
 # Setup (same venv as other datasets)
 source .venv/bin/activate
 
-# Generate all formats (500 tasks, ~2.5M tokens)
+# Generate all formats (500 tasks, ~191K tokens)
 python agentic/generate.py
 
 # Generate only specific format
@@ -283,9 +230,9 @@ The generator produces three output files:
 
 | File | Format | Size | aiperf `--custom-dataset-type` |
 |------|--------|------|-------------------------------|
-| `multi_turn_agentic_task.parquet` | Parquet | ~2.5 MB | N/A (analysis/HuggingFace) |
-| `multi_turn_agentic_task.jsonl` | JSONL | ~0.6 MB | `multi_turn` |
-| `multi_turn_agentic_task_mooncake.jsonl` | JSONL | ~250 MB | `mooncake_trace` |
+| `multi_turn_agentic_task.parquet` | Parquet | ~52 KB | N/A (analysis/HuggingFace) |
+| `multi_turn_agentic_task.jsonl` | JSONL | ~21 KB | `multi_turn` |
+| `multi_turn_agentic_task_mooncake.jsonl` | JSONL | ~422 KB | `mooncake_trace` |
 
 ### Using with aiperf
 
@@ -396,10 +343,10 @@ Each task type has a specific success metric with **partial credit penalties**:
 
 ### Default Dataset Stats
 
-- **500 conversations**, **~2.5M estimated tokens**
+- **500 conversations**, **~191K estimated tokens** (191,641), mean **~383 tokens/conversation**
 - Turn range: **2-15**, mean: **~7**
 - **6 task types** with balanced distribution
-- **24 tools** with realistic error injection (~15% failure rate)
+- **24 tools** with realistic error injection (**~16%** tool-call error rate, 16.03%)
 - **Tool call distribution:** 0 calls (10%), 1 call (40%), 2 calls (35%), 3+ calls (15%)
 
 ### Loading the Dataset
@@ -797,10 +744,11 @@ aiperf profile \
 
 ### Schema (Parquet)
 
-Extends the text dataset schema with image-specific columns:
+The image dataset has 15 columns (in order):
 
 | Column | Type | Description |
 |--------|------|-------------|
+| `conversation_id` | string | UUID v4 identifier |
 | `conversation_type` | string | Type of analysis (e.g., `image_description`, `visual_analysis`) |
 | `image_title` | string | Wikipedia image title |
 | `image_url` | string | Direct image URL (Wikimedia Commons) |
@@ -808,7 +756,13 @@ Extends the text dataset schema with image-specific columns:
 | `source_article` | string | Wikipedia article the image was sourced from |
 | `image_width` | int | Image width in pixels |
 | `image_height` | int | Image height in pixels |
+| `num_turns` | int | Number of user-assistant exchange pairs |
+| `num_messages` | int | Total messages including system prompt |
+| `system_prompt` | string | System-level instruction for the conversation |
 | `messages` | string (JSON) | First user message uses `image_url` multimodal format |
+| `total_characters` | int | Character count of entire conversation |
+| `estimated_tokens` | int | Approximate token count (~chars/4) |
+| `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn |
 
 ### Default Dataset Stats
 
@@ -1263,76 +1217,92 @@ Each manifest is a JSON file (`*_manifest.json`) saved alongside the dataset:
 
 ## Project Structure
 
+Datasets are deterministic (seed 42) and are regenerated on demand via each `<type>/generate.py`.
+The bulk `*.parquet` / `*.jsonl` outputs are **gitignored** (not committed); only the
+`*_manifest.json` sidecars and the source caches (`pdf/data/arxiv_papers.json`,
+`image/data/wikipedia_images.json`) are tracked in git.
+
 ```
 multi-turn-chat-dataset/
 ├── README.md
 ├── LICENSE
 ├── requirements.txt
-├── dataset_profile.py       # Shared module: tagging, naming, distribution profiling
+├── generator_base.py        # Shared module: BaseConversationGenerator (common generation scaffolding)
+├── dataset_profile.py       # Shared module: tagging, manifests, profiling, payload scoring
+├── regenerate_manifests.py  # Regenerate manifests (incl. payload scores) without regenerating data
 ├── text/
 │   ├── generate.py          # Generation script
 │   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_text_chat.parquet              # Full dataset (Parquet)
-│       ├── multi_turn_text_chat.jsonl                # aiperf multi_turn format
-│       ├── multi_turn_text_chat_manifest.json        # Dataset manifest (tags + profile)
-│       └── multi_turn_text_chat_mooncake.jsonl       # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_text_chat_manifest.json        # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_text_chat.parquet              # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_text_chat.jsonl                # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_text_chat_mooncake.jsonl       # aiperf mooncake_trace — generated, gitignored
 ├── pdf/
 │   ├── generate.py          # Generation script (fetches arXiv papers)
 │   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── arxiv_papers.json                         # Cached paper metadata
-│       ├── multi_turn_pdf_chat.parquet               # Full dataset (Parquet)
-│       ├── multi_turn_pdf_chat.jsonl                 # aiperf multi_turn format
-│       ├── multi_turn_pdf_chat_manifest.json         # Dataset manifest (tags + profile)
-│       └── multi_turn_pdf_chat_mooncake.jsonl        # aiperf mooncake_trace (generated, not in git)
+│       ├── arxiv_papers.json                         # Cached paper metadata — tracked
+│       ├── multi_turn_pdf_chat_manifest.json         # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_pdf_chat.parquet               # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_pdf_chat.jsonl                 # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_pdf_chat_mooncake.jsonl        # aiperf mooncake_trace — generated, gitignored
 ├── image/
 │   ├── generate.py          # Generation script (fetches Wikipedia images)
 │   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── wikipedia_images.json                     # Cached image metadata
-│       ├── multi_turn_image_chat.parquet             # Full dataset (Parquet)
-│       ├── multi_turn_image_chat.jsonl               # aiperf multi_turn format
-│       ├── multi_turn_image_chat_manifest.json       # Dataset manifest (tags + profile)
-│       └── multi_turn_image_chat_mooncake.jsonl      # aiperf mooncake_trace (generated, not in git)
+│       ├── wikipedia_images.json                     # Cached image metadata — tracked
+│       ├── multi_turn_image_chat_manifest.json       # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_image_chat.parquet             # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_image_chat.jsonl               # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_image_chat_mooncake.jsonl      # aiperf mooncake_trace — generated, gitignored
 ├── reasoning/
 │   ├── generate.py          # Generation script (deep reasoning conversations)
 │   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_reasoning_chat.parquet         # Full dataset (Parquet)
-│       ├── multi_turn_reasoning_chat.jsonl           # aiperf multi_turn format
-│       ├── multi_turn_reasoning_chat_manifest.json   # Dataset manifest (tags + profile)
-│       └── multi_turn_reasoning_chat_mooncake.jsonl  # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_reasoning_chat_manifest.json   # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_reasoning_chat.parquet         # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_reasoning_chat.jsonl           # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_reasoning_chat_mooncake.jsonl  # aiperf mooncake_trace — generated, gitignored
 ├── agentic/
 │   ├── generate.py          # Generation script (agent tasks with tool-use)
 │   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_agentic_task.parquet           # Full dataset (Parquet)
-│       ├── multi_turn_agentic_task.jsonl             # aiperf multi_turn format
-│       ├── multi_turn_agentic_task_manifest.json     # Dataset manifest (tags + profile)
-│       └── multi_turn_agentic_task_mooncake.jsonl    # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_agentic_task_manifest.json     # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_agentic_task.parquet           # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_agentic_task.jsonl             # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_agentic_task_mooncake.jsonl    # aiperf mooncake_trace — generated, gitignored
 ├── random/
 │   ├── generate.py          # Generation script (random/gibberish text)
 │   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_random_chat.parquet            # Full dataset (Parquet)
-│       ├── multi_turn_random_chat.jsonl              # aiperf multi_turn format
-│       ├── multi_turn_random_chat_manifest.json      # Dataset manifest (tags + profile)
-│       └── multi_turn_random_chat_mooncake.jsonl     # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_random_chat_manifest.json      # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_random_chat.parquet            # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_random_chat.jsonl              # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_random_chat_mooncake.jsonl     # aiperf mooncake_trace — generated, gitignored
 ├── repeat/
 │   ├── generate.py          # Generation script (repetitive text)
 │   ├── config.yaml          # Configuration (includes tags)
 │   └── data/
-│       ├── multi_turn_repeat_chat.parquet            # Full dataset (Parquet)
-│       ├── multi_turn_repeat_chat.jsonl              # aiperf multi_turn format
-│       ├── multi_turn_repeat_chat_manifest.json      # Dataset manifest (tags + profile)
-│       └── multi_turn_repeat_chat_mooncake.jsonl     # aiperf mooncake_trace (generated, not in git)
+│       ├── multi_turn_repeat_chat_manifest.json      # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_repeat_chat.parquet            # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_repeat_chat.jsonl              # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_repeat_chat_mooncake.jsonl     # aiperf mooncake_trace — generated, gitignored
+├── mixed/
+│   ├── generate.py          # Generation script (combines multiple source types by weight)
+│   ├── config.yaml          # Source weights, sampling strategy, schema handling
+│   └── data/
+│       ├── multi_turn_mixed_chat_manifest.json       # Dataset manifest (tags + profile) — tracked
+│       ├── multi_turn_mixed_chat.parquet             # Full dataset (Parquet) — generated, gitignored
+│       ├── multi_turn_mixed_chat.jsonl               # aiperf multi_turn format — generated, gitignored
+│       └── multi_turn_mixed_chat_mooncake.jsonl      # aiperf mooncake_trace — generated, gitignored
 ├── examples/
-│   ├── 01_load_and_inspect.py      # Load datasets + show tags & profile
-│   ├── 02_analyze_conversations.py # Context growth analysis
+│   ├── 01_load_and_inspect.py         # Load datasets + show tags & profile
+│   ├── 02_analyze_conversations.py    # Context growth analysis
 │   ├── 03_prepare_for_benchmarking.py
 │   ├── 04_agentic_analysis.py
-│   ├── 05_dataset_profile.py       # Dataset profiling, tagging, comparison
+│   ├── 05_dataset_profile.py          # Dataset profiling, tagging, comparison
+│   ├── 06_payload_score_comparison.py # Compare payload (prefill/decode) scores
 │   └── README.md
 └── .gitignore
 ```

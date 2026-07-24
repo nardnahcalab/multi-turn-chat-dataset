@@ -80,14 +80,34 @@ Extends text schema with PDF-specific columns:
 
 **File**: `image/data/multi_turn_image_chat.parquet`
 
-Extends text schema with image-specific columns:
+Full schema (15 columns):
 
 | Column | Type | Description | Example |
 |--------|------|-------------|---------|
-| `image_topic` | string | Image topic category | `"nature"`, `"architecture"` |
-| `conversation_type` | string | Type of analysis | `"description"`, `"analysis"` |
-| `image_url` | string | Image URL | `"https://upload.wikimedia.org/..."` |
+| `conversation_id` | string | UUID v4 identifier | `"550e8400-e29b-41d4-a716-446655440000"` |
+| `conversation_type` | string | Type of image conversation | `"image_description"`, `"visual_analysis"` |
 | `image_title` | string | Image title | `"Eiffel Tower"` |
+| `image_url` | string | Image URL | `"https://upload.wikimedia.org/..."` |
+| `image_topic` | string | Image topic category | `"nature"`, `"architecture"` |
+| `source_article` | string | Source Wikipedia article | `"Eiffel Tower"` |
+| `image_width` | int | Image width in pixels | `1024` |
+| `image_height` | int | Image height in pixels | `768` |
+| `num_turns` | int | Number of user-assistant exchange pairs | `8` |
+| `num_messages` | int | Total messages including system prompt | `17` |
+| `system_prompt` | string | System-level instruction | `"You are a helpful visual analysis assistant..."` |
+| `messages` | string (JSON) | Full message array | `[{"role": "system", "content": "..."}, ...]` |
+| `total_characters` | int | Character count of entire conversation | `3245` |
+| `estimated_tokens` | int | Approximate token count (~chars/4) | `811` |
+| `cumulative_char_lengths` | string (JSON) | Array of cumulative character counts after each turn | `[245, 512, 1024, ...]` |
+
+**Conversation Types** (7 types):
+- `image_description` (20%)
+- `visual_analysis` (20%)
+- `contextual_discussion` (15%)
+- `creative_interpretation` (15%)
+- `comparison` (10%)
+- `educational` (10%)
+- `technical_photography` (10%)
 
 **Image Topics** (10 types):
 - `nature`, `architecture`, `art`, `science`, `history`
@@ -417,8 +437,12 @@ df = pd.read_parquet(
     columns=['conversation_id', 'num_turns', 'estimated_tokens']
 )
 
-# Load in chunks (for large datasets)
-for chunk in pd.read_parquet("text/data/multi_turn_text_chat.parquet", chunksize=100):
+# Load in batches (for large datasets)
+import pyarrow.parquet as pq
+
+pf = pq.ParquetFile("text/data/multi_turn_text_chat.parquet")
+for batch in pf.iter_batches(batch_size=1000):
+    chunk = batch.to_pandas()
     print(f"Processing {len(chunk)} conversations")
 ```
 
@@ -604,15 +628,14 @@ else:
 ### Handle Large Files
 
 ```python
-import pandas as pd
+import pyarrow.parquet as pq
 
-# Process in chunks to avoid memory issues
-try:
-    for chunk in pd.read_parquet("text/data/multi_turn_text_chat.parquet", chunksize=100):
-        # Process chunk
-        print(f"Processing {len(chunk)} conversations")
-except MemoryError:
-    print("Dataset too large for memory. Use chunksize parameter.")
+# Process in batches to avoid memory issues
+pf = pq.ParquetFile("text/data/multi_turn_text_chat.parquet")
+for batch in pf.iter_batches(batch_size=1000):
+    chunk = batch.to_pandas()
+    # Process chunk
+    print(f"Processing {len(chunk)} conversations")
 ```
 
 ### Validate Data
@@ -640,7 +663,7 @@ for idx, row in df.iterrows():
 ## Performance Tips
 
 1. **Use specific columns**: Load only needed columns to save memory
-2. **Use chunksize**: Process large datasets in chunks
+2. **Use batched reads**: Process large datasets with `pyarrow.parquet.ParquetFile.iter_batches()`
 3. **Use filters**: Filter early to reduce data size
 4. **Use Parquet**: More efficient than CSV or JSON
 5. **Use indexes**: Create indexes for frequently filtered columns

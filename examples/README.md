@@ -169,7 +169,48 @@ python examples/04_agentic_analysis.py --report
 
 ---
 
-### 5. Payload Score Comparison (`06_payload_score_comparison.py`)
+### 5. Dataset Profiling (`05_dataset_profile.py`)
+
+Load dataset manifests, inspect tags and distribution profiles, and compare datasets.
+
+**Features**:
+- Load and display dataset manifests (tags + distribution profile)
+- Compare distribution profiles across dataset types
+- Filter datasets by tags
+- Generate standalone profiles for existing datasets
+
+**Usage**:
+```bash
+# Profile all datasets
+python examples/05_dataset_profile.py
+
+# Profile a single dataset
+python examples/05_dataset_profile.py text
+
+# Compare distribution profiles
+python examples/05_dataset_profile.py --compare text reasoning
+
+# List all tags across datasets
+python examples/05_dataset_profile.py --tags
+
+# Find datasets matching tags
+python examples/05_dataset_profile.py --filter tag1 tag2
+```
+
+**Key Functions**:
+- `build_manifest()` - Build a dataset manifest
+- `compute_distribution_profile()` - Compute distribution profile
+- `generate_tags()` - Generate dataset tags
+- `print_profile_summary()` - Display profile summary
+
+**Output**:
+- Dataset tags and distribution profiles
+- Side-by-side distribution comparisons
+- Tag-based dataset filtering
+
+---
+
+### 6. Payload Score Comparison (`06_payload_score_comparison.py`)
 
 Compare computational effort across datasets and create payload-balanced subsets.
 
@@ -374,9 +415,13 @@ pip install -r ../requirements.txt
                         columns=['conversation_id', 'num_turns'])
    ```
 
-2. **Process in chunks**: For large datasets
+2. **Process in batches**: For large datasets
    ```python
-   for chunk in pd.read_parquet("text/data/multi_turn_text_chat.parquet", chunksize=100):
+   import pyarrow.parquet as pq
+
+   pf = pq.ParquetFile("text/data/multi_turn_text_chat.parquet")
+   for batch in pf.iter_batches(batch_size=1000):
+       chunk = batch.to_pandas()
        # Process chunk
    ```
 
@@ -404,29 +449,7 @@ pip install -r ../requirements.txt
 
 ## Troubleshooting
 
-### "Dataset not found" Error
-
-Generate the dataset first:
-```bash
-python text/generate.py
-python agentic/generate.py
-```
-
-### Out of Memory
-
-Use chunked processing:
-```python
-for chunk in pd.read_parquet("text/data/multi_turn_text_chat.parquet", chunksize=50):
-    # Process chunk
-```
-
-### Slow Performance
-
-Load only needed columns:
-```python
-df = pd.read_parquet("text/data/multi_turn_text_chat.parquet",
-                     columns=['conversation_id', 'num_turns'])
-```
+See the Troubleshooting section in [FAQ.md](../FAQ.md).
 
 ---
 

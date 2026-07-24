@@ -1,6 +1,6 @@
 # Architecture
 
-Comprehensive technical reference for the **multi-turn-chat-dataset** repository. This document covers the system design, data flows, code structure, and output format specifications for all five dataset generators.
+Comprehensive technical reference for the **multi-turn-chat-dataset** repository. This document covers the system design, data flows, code structure, and output format specifications for all eight dataset types, plus the shared modules (`generator_base.py`, `dataset_profile.py`) they are built on.
 
 ## Table of Contents
 
@@ -8,6 +8,7 @@ Comprehensive technical reference for the **multi-turn-chat-dataset** repository
 - [Repository Structure](#repository-structure)
 - [Design Principles](#design-principles)
 - [Shared Architecture](#shared-architecture)
+  - [Shared Generator Base Module](#shared-generator-base-module)
 - [Text Dataset Generator](#text-dataset-generator)
 - [PDF Dataset Generator](#pdf-dataset-generator)
 - [Image Dataset Generator](#image-dataset-generator)
@@ -23,7 +24,7 @@ Comprehensive technical reference for the **multi-turn-chat-dataset** repository
 
 This project generates synthetic multi-turn conversation datasets for benchmarking LLM inference engines. The datasets are designed to simulate real-world conversations with naturally growing context, making them ideal for stress-testing **prefix caching**, **KV-cache management**, and **long-context inference** performance.
 
-Four dataset types target different modalities and reasoning depths:
+Eight dataset types are provided. The four core conversation generators target different modalities and reasoning depths:
 
 | Dataset | Modality | External Source | Conversations | Tokens | Turn Range |
 |---------|----------|-----------------|---------------|--------|------------|
@@ -31,6 +32,17 @@ Four dataset types target different modalities and reasoning depths:
 | **pdf** | Text + PDF URL | arXiv papers | 500 | ~3M | 1-30 |
 | **image** | Text + Image URL | Wikipedia images | 500 | ~3M | 1-30 |
 | **reasoning** | Text-only (deep reasoning) | None (synthetic) | 500 | ~5.8M | 1-40 |
+
+Four additional types round out the collection:
+
+| Dataset | Modality | Purpose |
+|---------|----------|---------|
+| **agentic** | Text + tool calls | Agent task execution with tool use, error recovery, and success scoring (500 conversations, ~191K estimated tokens, ~16% error rate, 2-15 turns) |
+| **random** | Text-only (randomized) | Randomly generated content (words, characters, sentences, lorem ipsum) for unpredictable, non-cacheable prompts |
+| **repeat** | Text-only (repetitive) | Messages built from a word/phrase/pattern repeated many times — highly compressible content for tokenizer and prefix-cache testing |
+| **mixed** | Mixed | Loads and reshapes sibling dataset parquet files (text, pdf, image, reasoning, agentic) into a single combined dataset based on configurable weights |
+
+All token counts throughout this document use a simple **chars/4 heuristic** (`CHARS_PER_TOKEN = 4`); no real tokenizer is invoked.
 
 ---
 
@@ -44,17 +56,20 @@ multi-turn-chat-dataset/
 ├── requirements.txt          # Python dependencies
 ├── .gitignore                # Excludes .venv/, __pycache__/, *_mooncake.jsonl
 │
+├── generator_base.py         # 334 lines — BaseConversationGenerator + shared scaffolding
+├── dataset_profile.py        # 712 lines — tagging, naming, profiling/manifests, payload scoring
+│
 ├── text/
-│   ├── generate.py           # 1,017 lines — text conversation generator
-│   ├── config.yaml           # 97 lines — configuration
+│   ├── generate.py           # 811 lines — text conversation generator
+│   ├── config.yaml           # configuration
 │   └── data/
 │       ├── multi_turn_text_chat.parquet        # ~2 MB
 │       ├── multi_turn_text_chat.jsonl           # ~0.8 MB (aiperf multi_turn)
 │       └── multi_turn_text_chat_mooncake.jsonl  # ~227 MB (gitignored)
 │
 ├── pdf/
-│   ├── generate.py           # 821 lines — PDF/arXiv conversation generator
-│   ├── config.yaml           # 94 lines — configuration
+│   ├── generate.py           # 690 lines — PDF/arXiv conversation generator
+│   ├── config.yaml           # configuration
 │   └── data/
 │       ├── arxiv_papers.json                   # Cached paper metadata (89 papers)
 │       ├── multi_turn_pdf_chat.parquet         # ~1.6 MB
@@ -62,21 +77,41 @@ multi-turn-chat-dataset/
 │       └── multi_turn_pdf_chat_mooncake.jsonl  # ~97 MB (gitignored)
 │
 ├── image/
-│   ├── generate.py           # 1,059 lines — Wikipedia image conversation generator
-│   ├── config.yaml           # 210 lines — configuration
+│   ├── generate.py           # 925 lines — Wikipedia image conversation generator
+│   ├── config.yaml           # configuration
 │   └── data/
 │       ├── wikipedia_images.json                  # Cached image metadata (150 images)
 │       ├── multi_turn_image_chat.parquet           # ~1.6 MB
 │       ├── multi_turn_image_chat.jsonl             # ~0.5 MB (aiperf multi_turn)
 │       └── multi_turn_image_chat_mooncake.jsonl    # ~99 MB (gitignored)
 │
-└── reasoning/
-    ├── generate.py           # 1,242 lines — deep reasoning conversation generator
-    ├── config.yaml           # 97 lines — configuration
+├── reasoning/
+│   ├── generate.py           # 1,031 lines — deep reasoning conversation generator
+│   ├── config.yaml           # configuration
+│   └── data/
+│       ├── multi_turn_reasoning_chat.parquet           # ~3.2 MB
+│       ├── multi_turn_reasoning_chat.jsonl             # ~0.8 MB (aiperf multi_turn)
+│       └── multi_turn_reasoning_chat_mooncake.jsonl    # ~253 MB (gitignored)
+│
+├── agentic/                  # generate.py (996 lines) — tool-use agent tasks (structural outlier)
+│   ├── generate.py
+│   ├── config.yaml
+│   └── data/
+│
+├── random/                   # generate.py (450 lines) — randomized non-cacheable content
+│   ├── generate.py
+│   ├── config.yaml
+│   └── data/
+│
+├── repeat/                   # generate.py (430 lines) — repetitive/compressible content
+│   ├── generate.py
+│   ├── config.yaml
+│   └── data/
+│
+└── mixed/                    # generate.py (445 lines) — reshapes sibling parquet files (structural outlier)
+    ├── generate.py
+    ├── config.yaml
     └── data/
-        ├── multi_turn_reasoning_chat.parquet           # ~3.2 MB
-        ├── multi_turn_reasoning_chat.jsonl             # ~0.8 MB (aiperf multi_turn)
-        └── multi_turn_reasoning_chat_mooncake.jsonl    # ~253 MB (gitignored)
 ```
 
 ### Dependencies
@@ -140,7 +175,37 @@ PDF and image generators fetch metadata from external APIs (arXiv, Wikipedia) an
 
 ## Shared Architecture
 
-All four generators follow an identical architectural pattern. Understanding one makes the others immediately familiar.
+The generators follow an identical architectural pattern. Understanding one makes the others immediately familiar. As of the shared-base refactor, that pattern is no longer copy-pasted into each `<type>/generate.py`; it lives in a single module, `generator_base.py`, which the class-based generators inherit from.
+
+### Shared Generator Base Module
+
+`generator_base.py` defines `BaseConversationGenerator`, which centralizes the scaffolding that used to be duplicated across every `<type>/generate.py`. Each concrete generator now supplies only its domain logic (templates + `generate_conversation`) and inherits the rest.
+
+**What lives in `BaseConversationGenerator`:**
+
+| Concern | Members |
+|---------|---------|
+| RNG / topic setup | `__init__` (seeded `random.Random`), `_pick_topic`, `_response_length_bucket` |
+| Turn-distribution sampling | `generate_dataset` (uniform `--num` override, or configured distribution buckets + shuffle) |
+| Seed-reproducible IDs | `new_conversation_id` (UUIDv4 drawn from the generator RNG) |
+| aiperf JSONL writers | `to_aiperf_multi_turn` (user turns only), `to_aiperf_mooncake` (full context per assistant turn) |
+| Token estimation | `CHARS_PER_TOKEN = 4`, `estimate_tokens`, `estimate_output_tokens` — the single source of truth for the chars/4 heuristic (no real tokenizer) |
+| CLI orchestration | classmethod `main()` handling arg parsing, config loading, generation, and `write_outputs` (Parquet + JSONL + manifest) |
+
+Manifest/profiling and descriptive-naming helpers are imported from the shared `dataset_profile.py` module (see below).
+
+**Class-based generators (6):** `text`, `reasoning`, `random`, `repeat`, `pdf`, and `image` subclass `BaseConversationGenerator` and override only domain logic.
+
+- `pdf` and `image` additionally override `_response_length_bucket` (they use different turn thresholds), the multimodal `to_aiperf_multi_turn`, and the `from_args` / `add_cli_args` hooks so they can fetch external source data (arXiv / Wikipedia) and register `--skip-fetch`.
+
+**Structural outliers (2):** `agentic` and `mixed` reuse the shared helpers but keep their own control flow rather than subclassing the standard generation loop.
+
+- `agentic` samples turns with a different, task-based algorithm and keeps `jsonl_ensure_ascii=True` plus a delay-less mooncake writer.
+- `mixed` loads and reshapes sibling dataset parquet files instead of generating conversations from templates.
+
+### Shared Profiling Module
+
+`dataset_profile.py` remains the shared module for tagging, descriptive dataset naming, distribution profiling / manifest generation, and payload scoring. `BaseConversationGenerator.write_outputs` calls into it to emit a manifest alongside every dataset (unless `--no-profile` is passed).
 
 ### Generation Pipeline
 
@@ -160,8 +225,8 @@ config.yaml
             │
             ▼
 ┌─────────────────────────┐
-│  Initialize Generator   │  ConversationGenerator(config, data, seed)
-│  with seeded RNG        │  Isolated random.Random(seed) instance
+│  Initialize Generator   │  Generator.from_args(config, seed, args)
+│  with seeded RNG        │  BaseConversationGenerator sets random.Random(seed)
 └───────────┬─────────────┘
             │
             ▼
@@ -183,17 +248,24 @@ config.yaml
 
 ### Conversation Generator Class
 
-Each generator has a central class with the same method structure:
+Each class-based generator subclasses `BaseConversationGenerator`. The base class supplies the shared methods (marked *inherited* below); subclasses implement or override only the domain-specific ones:
 
-| Method | Purpose |
-|--------|---------|
-| `__init__(config, [data], seed)` | Initialize RNG, extract weights, store config |
-| `_fill_template(template, context)` | Multi-phase placeholder substitution |
-| `_response_length_bucket(turn_index)` | Pick short/medium/long based on turn position |
-| `_generate_user_message(type, context, turn)` | Select opener (turn 0) or followup template |
-| `_generate_response(type, context, turn)` | Generate response, pad/trim to target length |
-| `generate_conversation(num_turns)` | Build one full conversation with metadata |
-| `generate_dataset(num_conversations)` | Generate all conversations using distribution |
+| Method | Source | Purpose |
+|--------|--------|---------|
+| `__init__(config, seed)` | inherited | Initialize RNG, extract topic weights, store config |
+| `_pick_topic()` | inherited | Weighted random topic selection |
+| `_response_length_bucket(turn_index)` | inherited (pdf/image override) | Pick short/medium/long based on turn position |
+| `new_conversation_id()` | inherited | Seed-reproducible UUIDv4 |
+| `generate_dataset(num_conversations)` | inherited | Generate all conversations (uniform override or distribution buckets) |
+| `to_aiperf_multi_turn(convs)` | inherited (pdf/image override) | Build aiperf multi_turn entries |
+| `to_aiperf_mooncake(convs)` | inherited | Build aiperf mooncake_trace entries |
+| `main()` / `write_outputs(...)` | inherited | CLI parsing, config load, and output writing |
+| `_fill_template(template, context)` | subclass | Multi-phase placeholder substitution |
+| `_generate_user_message(type, context, turn)` | subclass | Select opener (turn 0) or followup template |
+| `_generate_response(type, context, turn)` | subclass | Generate response, pad/trim to target length |
+| `generate_conversation(num_turns)` | subclass | Build one full conversation with metadata |
+
+The `agentic` and `mixed` generators reuse the inherited helpers (token estimation, JSONL writers, output writing) but drive their own top-level flow instead of relying on the inherited `generate_dataset` loop.
 
 ### Template System
 
@@ -753,7 +825,7 @@ All messages are text-only (no multimodal content):
 
 ## Agentic Task Dataset Generator
 
-The agentic task generator (`agentic/generate.py`, ~1,100 lines) creates synthetic multi-turn conversations where agents execute high-level goals using tool calls, error recovery, and iterative refinement.
+The agentic task generator (`agentic/generate.py`, 996 lines) creates synthetic multi-turn conversations where agents execute high-level goals using tool calls, error recovery, and iterative refinement. It generates 500 conversations totaling ~191K estimated tokens (chars/4 heuristic).
 
 ### Design Overview
 
@@ -761,9 +833,11 @@ The agentic task generator (`agentic/generate.py`, ~1,100 lines) creates synthet
 
 **Key Differences from Other Datasets:**
 - **Tool-use focus:** Each conversation includes realistic tool calls with success/failure outcomes
-- **Error injection:** ~15% of tool calls fail, requiring agents to handle errors and retry
+- **Error injection:** overall error rate is ~16% of tool calls, requiring agents to handle errors and retry
 - **Success metrics:** Task-specific metrics (e.g., `data_integrity_score`, `test_pass_rate`) with partial credit penalties
 - **Shorter turns:** 2-15 turns (vs. 1-50 for text) — focused on goal completion, not context growth
+
+**Relationship to the shared base:** `AgenticTaskGenerator` subclasses `BaseConversationGenerator` and reuses its shared helpers (token estimation, output writing), but it is a *structural outlier* — it samples turns with its own task-based algorithm rather than the inherited `generate_dataset` loop, sets `jsonl_ensure_ascii=True`, and uses a delay-less mooncake writer.
 
 ### Architecture
 
@@ -812,7 +886,7 @@ Each task type has a metric with configurable partial credit penalties:
 
 ### Parquet Schema
 
-**Common columns** (all four datasets):
+**Common columns** (all datasets):
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -1004,19 +1078,18 @@ Follow the existing pattern:
    - Data fetching function (if external source) with JSON caching
    - `CONVERSATION_TEMPLATES` dict with openers/followups/responses
    - `FILL_VALUES` dict for domain-specific placeholders
-   - Generator class inheriting the shared method pattern
-   - `convert_to_aiperf_multi_turn()` and `convert_to_aiperf_mooncake()` functions
-   - `main()` with the standard CLI flags
-3. Create `new_type/data/` directory
-4. Update `requirements.txt` if new dependencies are needed
-5. Update `README.md` and this document
+   - A generator class subclassing `BaseConversationGenerator` (set `dataset_type`, implement `generate_conversation`, and override only what differs — e.g. `_response_length_bucket`, `to_aiperf_multi_turn`, or the `from_args`/`add_cli_args` hooks for external fetching)
+3. Add `if __name__ == "__main__": <Generator>.main()` — the inherited classmethod handles CLI parsing, config loading, generation, and output/manifest writing. (Structural outliers like `agentic`/`mixed` may instead define their own `main()` while reusing the shared helpers.)
+4. Create `new_type/data/` directory
+5. Update `requirements.txt` if new dependencies are needed
+6. Update `README.md` and this document
 
 ### Adding a New Output Format
 
-Add a new conversion function following the pattern:
+The aiperf writers now live on `BaseConversationGenerator` (`to_aiperf_multi_turn` / `to_aiperf_mooncake`) and are invoked from the inherited `write_outputs`. Add a new format by defining a converter method following the same pattern:
 
 ```python
-def convert_to_new_format(conversations: list[dict]) -> list[dict]:
+def to_new_format(self, conversations: list[dict]) -> list[dict]:
     entries = []
     for conv in conversations:
         messages = json.loads(conv["messages"])
@@ -1025,4 +1098,4 @@ def convert_to_new_format(conversations: list[dict]) -> list[dict]:
     return entries
 ```
 
-Then add a new `--format` choice in `main()` and wire up the export logic.
+Then extend the `--format` choices in `BaseConversationGenerator.build_arg_parser` and wire the export branch into `write_outputs`.
