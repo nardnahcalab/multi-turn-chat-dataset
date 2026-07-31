@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.0.0",
-  "generated_at": "2026-07-31T17:10:21.602165+00:00",
+  "generated_at": "2026-07-31T18:48:55.625608+00:00",
   "dataset": {
     "name": "multi-turn-random-similar-chat",
     "descriptive_name": "multi_turn_random_similar_chat_n500_s42_v1.0.0_20260731_similar",
@@ -55,208 +55,208 @@
     "turn_distribution": {
       "min": 1,
       "max": 50,
-      "mean": 25.71,
-      "median": 25.0,
-      "stdev": 14.53,
+      "mean": 18.48,
+      "median": 15.5,
+      "stdev": 13.29,
       "percentiles": {
-        "p5": 4.0,
-        "p25": 13.0,
-        "p50": 25.0,
-        "p75": 39.0,
-        "p95": 48.0,
-        "p99": 50.0
+        "p5": 2.0,
+        "p25": 7.75,
+        "p50": 15.5,
+        "p75": 28.0,
+        "p95": 45.0,
+        "p99": 48.0
       },
       "histogram": [
         {
           "range": "1.0-5.9",
-          "count": 42
+          "count": 100
         },
         {
           "range": "5.9-10.8",
-          "count": 57
+          "count": 79
         },
         {
           "range": "10.8-15.7",
-          "count": 56
+          "count": 71
         },
         {
           "range": "15.7-20.6",
-          "count": 45
+          "count": 61
         },
         {
           "range": "20.6-25.5",
-          "count": 51
+          "count": 35
         },
         {
           "range": "25.5-30.4",
-          "count": 45
+          "count": 54
         },
         {
           "range": "30.4-35.3",
-          "count": 55
+          "count": 30
         },
         {
           "range": "35.3-40.2",
-          "count": 46
+          "count": 25
         },
         {
           "range": "40.2-45.1",
-          "count": 44
+          "count": 27
         },
         {
           "range": "45.1-50.0",
-          "count": 59
+          "count": 18
         }
       ],
       "bucket_distribution": [
         {
           "bucket": "short (1-5)",
-          "count": 42,
-          "percentage": 8.4
+          "count": 100,
+          "percentage": 20.0
         },
         {
           "bucket": "medium (6-15)",
-          "count": 113,
-          "percentage": 22.6
+          "count": 150,
+          "percentage": 30.0
         },
         {
           "bucket": "long (16-30)",
-          "count": 141,
-          "percentage": 28.2
+          "count": 150,
+          "percentage": 30.0
         },
         {
           "bucket": "very_long (31+)",
-          "count": 204,
-          "percentage": 40.8
+          "count": 100,
+          "percentage": 20.0
         }
       ]
     },
     "token_distribution": {
-      "total": 3175566,
-      "min": 181,
-      "max": 38637,
-      "mean": 6351.13,
-      "median": 4371.0,
-      "stdev": 6159.07,
+      "total": 3285205,
+      "min": 130,
+      "max": 47383,
+      "mean": 6570.41,
+      "median": 3696.0,
+      "stdev": 7910.39,
       "percentiles": {
-        "p5": 986.3,
-        "p25": 2379.5,
-        "p50": 4371.0,
-        "p75": 8088.25,
-        "p95": 19678.55,
-        "p99": 31558.62
+        "p5": 545.3,
+        "p25": 1653.25,
+        "p50": 3696.0,
+        "p75": 8071.0,
+        "p95": 23192.5,
+        "p99": 40309.21
       },
       "histogram": [
         {
-          "range": "181.0-4026.6",
-          "count": 234
+          "range": "130.0-4855.3",
+          "count": 283
         },
         {
-          "range": "4026.6-7872.2",
-          "count": 133
+          "range": "4855.3-9580.6",
+          "count": 116
         },
         {
-          "range": "7872.2-11717.8",
-          "count": 73
+          "range": "9580.6-14305.9",
+          "count": 51
         },
         {
-          "range": "11717.8-15563.4",
-          "count": 21
+          "range": "14305.9-19031.2",
+          "count": 17
         },
         {
-          "range": "15563.4-19409.0",
-          "count": 13
+          "range": "19031.2-23756.5",
+          "count": 9
         },
         {
-          "range": "19409.0-23254.6",
-          "count": 10
+          "range": "23756.5-28481.8",
+          "count": 7
         },
         {
-          "range": "23254.6-27100.2",
+          "range": "28481.8-33207.1",
           "count": 5
         },
         {
-          "range": "27100.2-30945.8",
+          "range": "33207.1-37932.4",
+          "count": 2
+        },
+        {
+          "range": "37932.4-42657.7",
           "count": 5
         },
         {
-          "range": "30945.8-34791.4",
+          "range": "42657.7-47383.0",
           "count": 5
-        },
-        {
-          "range": "34791.4-38637.0",
-          "count": 1
         }
       ]
     },
     "character_distribution": {
-      "total": 13115110,
-      "min": 819,
-      "max": 92886,
-      "mean": 26230.22,
-      "median": 19377.0,
-      "stdev": 19573.62,
+      "total": 12040457,
+      "min": 488,
+      "max": 109291,
+      "mean": 24080.91,
+      "median": 17239.0,
+      "stdev": 21286.66,
       "percentiles": {
-        "p5": 4448.9,
-        "p25": 12445.5,
-        "p50": 19377.0,
-        "p75": 36982.25,
-        "p95": 68537.85,
-        "p99": 84596.38
+        "p5": 2807.4,
+        "p25": 7682.75,
+        "p50": 17239.0,
+        "p75": 34851.25,
+        "p95": 67576.8,
+        "p99": 93815.96
       }
     },
     "message_count_distribution": {
       "min": 3,
       "max": 101,
-      "mean": 52.42,
-      "median": 51.0
+      "mean": 37.96,
+      "median": 32.0
     },
     "context_growth": {
       "growth_ratio": {
-        "min": 2.16,
-        "max": 212.04,
-        "mean": 52.32,
-        "median": 40.55
+        "min": 1.46,
+        "max": 70.21,
+        "mean": 16.51,
+        "median": 13.56
       },
       "first_turn_chars": {
-        "mean": 852.19,
-        "median": 449.0
+        "mean": 2564.49,
+        "median": 1272
       },
       "last_turn_chars": {
-        "mean": 26186.72,
-        "median": 19377.0
+        "mean": 24460.33,
+        "median": 17432
       }
     }
   },
   "payload_scores": {
-    "prefill_score": 0.3844,
-    "decode_score": 0.5045,
-    "total_payload_score": 0.4444,
+    "prefill_score": 0.3759,
+    "decode_score": 0.4562,
+    "total_payload_score": 0.4161,
     "prefill_breakdown": {
       "normalized": {
-        "total_tokens": 0.3175566,
-        "avg_context_size": 0.5246044,
+        "total_tokens": 0.3285205,
+        "avg_context_size": 0.48161828,
         "multimodal_penalty": 0.0,
         "context_growth": 1.0
       },
       "raw": {
-        "total_tokens": 3175566,
-        "avg_context_size": 26230.22,
+        "total_tokens": 3285205,
+        "avg_context_size": 24080.914,
         "multimodal_penalty": 0.0,
-        "context_growth": 52.32045027525623
+        "context_growth": 16.507726198367514
       }
     },
     "decode_breakdown": {
       "normalized": {
-        "total_response_tokens": 0.25404528000000004,
-        "num_turns": 1.0,
-        "avg_response_length": 0.51416,
+        "total_response_tokens": 0.2628164,
+        "num_turns": 0.9239,
+        "avg_response_length": 0.36956000000000006,
         "tool_call_penalty": 0.0
       },
       "raw": {
-        "total_response_tokens": 1270226.4000000001,
-        "num_turns": 12854,
-        "avg_response_length": 25.708,
+        "total_response_tokens": 1314082.0,
+        "num_turns": 9239,
+        "avg_response_length": 18.478,
         "tool_call_penalty": 0.0
       }
     }

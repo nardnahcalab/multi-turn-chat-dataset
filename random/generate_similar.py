@@ -156,20 +156,19 @@ class SimilarTokenRandomGenerator(BaseConversationGenerator):
 
     def _generate_user_content(self, topic_name: str, target_tokens: int) -> str:
         """Generate user message content targeting specific token count."""
-        # Random content is less token-dense than natural language
-        # Scale up targets to compensate (random content needs ~1.5-2x more characters for same tokens)
-        compensation_factor = 1.7
-        adjusted_tokens = int(target_tokens * compensation_factor)
-        target_words = max(3, adjusted_tokens // 4)
+        # Scale up target to account for token counting differences
+        # Random content tends to be less token-dense than natural language
+        scaled_target = int(target_tokens * 1.45)
+        target_words = max(3, scaled_target // 4)
         
         if topic_name == "random_words":
             return self._gen_random_words(max(3, target_words // 2), target_words * 2)
         elif topic_name == "random_chars":
-            target_chars = adjusted_tokens * 4
-            return self._gen_random_chars(max(10, target_chars // 2), target_chars)
+            target_chars = scaled_target * 4
+            return self._gen_random_chars(max(10, target_chars // 2), target_chars * 2)
         elif topic_name == "random_sentences":
-            target_sentences = max(1, target_words // 8)
-            return self._gen_random_sentences(max(1, target_sentences), target_sentences * 3)
+            target_sentences = max(1, target_words // 6)
+            return self._gen_random_sentences(max(1, target_sentences), target_sentences * 4)
         elif topic_name == "random_mixed":
             target_parts = max(5, target_words // 2)
             return self._gen_random_mixed(max(5, target_parts // 2), target_parts * 2)
@@ -180,10 +179,9 @@ class SimilarTokenRandomGenerator(BaseConversationGenerator):
 
     def _generate_response_content(self, topic_name: str, target_tokens: int) -> str:
         """Generate assistant response targeting specific token count."""
-        # Apply compensation factor for random content lower token density
-        compensation_factor = 1.7
-        adjusted_tokens = int(target_tokens * compensation_factor)
-        target_words = max(10, adjusted_tokens // 4)
+        # Scale up target to account for token counting differences
+        scaled_target = int(target_tokens * 1.45)
+        target_words = max(10, scaled_target // 4)
         parts = []
         word_count = 0
 
@@ -207,10 +205,10 @@ class SimilarTokenRandomGenerator(BaseConversationGenerator):
                     min_c, max_c = 15, min(120, remaining_words * 4)
                     chunk = self._gen_random_chars(max(10, min_c), max(20, max_c))
                 elif topic_name == "random_sentences":
-                    min_s, max_s = 1, min(5, max(1, remaining_words // 4))
+                    min_s, max_s = 1, min(5, max(1, remaining_words // 6))
                     chunk = self._gen_random_sentences(min_s, max_s)
                 elif topic_name == "random_mixed":
-                    min_p, max_p = 5, min(25, remaining_words)
+                    min_p, max_p = 5, min(25, remaining_words * 2)
                     chunk = self._gen_random_mixed(min(3, min_p), max(5, max_p))
                 elif topic_name == "random_lorem":
                     min_w, max_w = 8, min(50, remaining_words * 2)
@@ -245,8 +243,8 @@ class SimilarTokenRandomGenerator(BaseConversationGenerator):
 
         # Trim if significantly over target
         words = text.split()
-        if len(words) > target_words * 1.5:
-            words = words[:int(target_words * 1.2)]
+        if len(words) > target_words * 1.3:
+            words = words[:target_words]
             text = " ".join(words)
             last_period = text.rfind(".")
             if last_period > len(text) * 0.7:
@@ -267,52 +265,32 @@ class SimilarTokenRandomGenerator(BaseConversationGenerator):
         cumulative_char_lengths = []
         running_chars = len(system_prompt)
         
-        # Use exponential growth pattern similar to real conversations
-        # Later turns are typically longer
+        # Use simpler linear allocation to better match text dataset
+        # Split tokens evenly across turns with slight variation
         if num_turns == 1:
             # Single turn - allocate all tokens
-            user_target = max(50, target_total_tokens // 3)
-            assistant_target = max(100, target_total_tokens - user_target)
+            user_target = max(20, target_total_tokens // 3)
+            assistant_target = max(30, target_total_tokens - user_target)
         else:
-            # Multi-turn - use exponential distribution
-            # Early turns: shorter, Later turns: longer
-            import math
-            total_pairs = num_turns
-            
-            # Generate exponential weights for each turn
-            weights = [math.exp(0.3 * i) for i in range(total_pairs)]
-            total_weight = sum(weights)
-            
-            # Allocate tokens per turn pair (user + assistant)
-            tokens_per_pair = []
-            for i in range(total_pairs):
-                pair_tokens = (weights[i] / total_weight) * target_total_tokens
-                tokens_per_pair.append(max(100, int(pair_tokens)))  # Minimum 100 tokens per pair
-            
-            # Adjust to match total target
-            current_total = sum(tokens_per_pair)
-            if current_total != target_total_tokens:
-                # Scale to match
-                scale = target_total_tokens / current_total
-                tokens_per_pair = [max(50, int(t * scale)) for t in tokens_per_pair]
+            # Multi-turn - distribute tokens more evenly
+            # User messages are typically shorter than assistant responses
+            avg_tokens_per_turn = target_total_tokens // num_turns
+            user_target = max(15, avg_tokens_per_turn // 3)
+            assistant_target = max(25, avg_tokens_per_turn - user_target)
         
         for turn_idx in range(num_turns):
-            # Get token allocation for this turn
-            if num_turns == 1:
-                user_target = max(50, target_total_tokens // 3)
-                assistant_target = max(100, target_total_tokens - user_target)
-            else:
-                pair_tokens = tokens_per_pair[turn_idx]
-                user_target = max(30, pair_tokens // 3)
-                assistant_target = max(50, pair_tokens - user_target)
+            # Add slight variation to token targets for naturalness
+            variation = self.rng.uniform(0.8, 1.2)
+            current_user_target = max(10, int(user_target * variation))
+            current_assistant_target = max(15, int(assistant_target * variation))
             
             # User message
-            user_msg = self._generate_user_content(topic_name, user_target)
+            user_msg = self._generate_user_content(topic_name, current_user_target)
             messages.append({"role": "user", "content": user_msg})
             running_chars += len(user_msg)
 
             # Assistant response  
-            assistant_msg = self._generate_response_content(topic_name, assistant_target)
+            assistant_msg = self._generate_response_content(topic_name, current_assistant_target)
             messages.append({"role": "assistant", "content": assistant_msg})
             running_chars += len(assistant_msg)
 
