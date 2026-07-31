@@ -1,0 +1,264 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-07-31T17:10:21.602165+00:00",
+  "dataset": {
+    "name": "multi-turn-random-similar-chat",
+    "descriptive_name": "multi_turn_random_similar_chat_n500_s42_v1.0.0_20260731_similar",
+    "type": "random_similar",
+    "version": "1.0.0",
+    "description": "Synthetic multi-turn random-text conversations matching text dataset token distribution",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "baseline",
+      "random-text",
+      "token-matched",
+      "cache-baseline"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "random_similar",
+      "medium",
+      "n500",
+      "1M-5M-tokens",
+      "very-long-context"
+    ],
+    "all_tags": [
+      "1M-5M-tokens",
+      "baseline",
+      "benchmarking",
+      "cache-baseline",
+      "inference",
+      "medium",
+      "multi-turn",
+      "n500",
+      "prefix-caching",
+      "random-text",
+      "random_similar",
+      "synthetic",
+      "token-matched",
+      "very-long-context"
+    ]
+  },
+  "output_files": {
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/random/data/multi_turn_random_similar_chat.parquet",
+    "aiperf_multi_turn": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/random/data/multi_turn_random_similar_chat.jsonl",
+    "mooncake_trace": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/random/data/multi_turn_random_similar_chat_mooncake.jsonl"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 50,
+      "mean": 25.71,
+      "median": 25.0,
+      "stdev": 14.53,
+      "percentiles": {
+        "p5": 4.0,
+        "p25": 13.0,
+        "p50": 25.0,
+        "p75": 39.0,
+        "p95": 48.0,
+        "p99": 50.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-5.9",
+          "count": 42
+        },
+        {
+          "range": "5.9-10.8",
+          "count": 57
+        },
+        {
+          "range": "10.8-15.7",
+          "count": 56
+        },
+        {
+          "range": "15.7-20.6",
+          "count": 45
+        },
+        {
+          "range": "20.6-25.5",
+          "count": 51
+        },
+        {
+          "range": "25.5-30.4",
+          "count": 45
+        },
+        {
+          "range": "30.4-35.3",
+          "count": 55
+        },
+        {
+          "range": "35.3-40.2",
+          "count": 46
+        },
+        {
+          "range": "40.2-45.1",
+          "count": 44
+        },
+        {
+          "range": "45.1-50.0",
+          "count": 59
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 42,
+          "percentage": 8.4
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 113,
+          "percentage": 22.6
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 141,
+          "percentage": 28.2
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 204,
+          "percentage": 40.8
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 3175566,
+      "min": 181,
+      "max": 38637,
+      "mean": 6351.13,
+      "median": 4371.0,
+      "stdev": 6159.07,
+      "percentiles": {
+        "p5": 986.3,
+        "p25": 2379.5,
+        "p50": 4371.0,
+        "p75": 8088.25,
+        "p95": 19678.55,
+        "p99": 31558.62
+      },
+      "histogram": [
+        {
+          "range": "181.0-4026.6",
+          "count": 234
+        },
+        {
+          "range": "4026.6-7872.2",
+          "count": 133
+        },
+        {
+          "range": "7872.2-11717.8",
+          "count": 73
+        },
+        {
+          "range": "11717.8-15563.4",
+          "count": 21
+        },
+        {
+          "range": "15563.4-19409.0",
+          "count": 13
+        },
+        {
+          "range": "19409.0-23254.6",
+          "count": 10
+        },
+        {
+          "range": "23254.6-27100.2",
+          "count": 5
+        },
+        {
+          "range": "27100.2-30945.8",
+          "count": 5
+        },
+        {
+          "range": "30945.8-34791.4",
+          "count": 5
+        },
+        {
+          "range": "34791.4-38637.0",
+          "count": 1
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 13115110,
+      "min": 819,
+      "max": 92886,
+      "mean": 26230.22,
+      "median": 19377.0,
+      "stdev": 19573.62,
+      "percentiles": {
+        "p5": 4448.9,
+        "p25": 12445.5,
+        "p50": 19377.0,
+        "p75": 36982.25,
+        "p95": 68537.85,
+        "p99": 84596.38
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 101,
+      "mean": 52.42,
+      "median": 51.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 2.16,
+        "max": 212.04,
+        "mean": 52.32,
+        "median": 40.55
+      },
+      "first_turn_chars": {
+        "mean": 852.19,
+        "median": 449.0
+      },
+      "last_turn_chars": {
+        "mean": 26186.72,
+        "median": 19377.0
+      }
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.3844,
+    "decode_score": 0.5045,
+    "total_payload_score": 0.4444,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.3175566,
+        "avg_context_size": 0.5246044,
+        "multimodal_penalty": 0.0,
+        "context_growth": 1.0
+      },
+      "raw": {
+        "total_tokens": 3175566,
+        "avg_context_size": 26230.22,
+        "multimodal_penalty": 0.0,
+        "context_growth": 52.32045027525623
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.25404528000000004,
+        "num_turns": 1.0,
+        "avg_response_length": 0.51416,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 1270226.4000000001,
+        "num_turns": 12854,
+        "avg_response_length": 25.708,
+        "tool_call_penalty": 0.0
+      }
+    }
+  }
+}
