@@ -1,0 +1,264 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-08-03T21:26:04.031100+00:00",
+  "dataset": {
+    "name": "multi-turn-iso-text-chat",
+    "descriptive_name": "multi_turn_iso_text_chat_n500_s42_v1.0.0_20260803",
+    "type": "iso_text",
+    "version": "1.0.0",
+    "description": "Isometric coherent-text multi-turn conversations for controlled LLM benchmarking",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "isometric",
+      "controlled",
+      "coherent",
+      "text-only"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "iso_text",
+      "medium",
+      "n500",
+      "sub-1M-tokens",
+      "medium-context"
+    ],
+    "all_tags": [
+      "benchmarking",
+      "coherent",
+      "controlled",
+      "inference",
+      "iso_text",
+      "isometric",
+      "medium",
+      "medium-context",
+      "multi-turn",
+      "n500",
+      "prefix-caching",
+      "sub-1M-tokens",
+      "synthetic",
+      "text-only"
+    ]
+  },
+  "output_files": {
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/iso_text/data/multi_turn_iso_text_chat.parquet",
+    "aiperf_multi_turn": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/iso_text/data/multi_turn_iso_text_chat.jsonl",
+    "mooncake_trace": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/iso_text/data/multi_turn_iso_text_chat_mooncake.jsonl"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 10,
+      "mean": 3.57,
+      "median": 3.0,
+      "stdev": 2.25,
+      "percentiles": {
+        "p5": 1.0,
+        "p25": 2.0,
+        "p50": 3.0,
+        "p75": 5.0,
+        "p95": 8.0,
+        "p99": 10.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-1.9",
+          "count": 91
+        },
+        {
+          "range": "1.9-2.8",
+          "count": 108
+        },
+        {
+          "range": "2.8-3.7",
+          "count": 101
+        },
+        {
+          "range": "3.7-4.6",
+          "count": 45
+        },
+        {
+          "range": "4.6-5.5",
+          "count": 58
+        },
+        {
+          "range": "5.5-6.4",
+          "count": 47
+        },
+        {
+          "range": "6.4-7.3",
+          "count": 9
+        },
+        {
+          "range": "7.3-8.2",
+          "count": 19
+        },
+        {
+          "range": "8.2-9.1",
+          "count": 14
+        },
+        {
+          "range": "9.1-10.0",
+          "count": 8
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 403,
+          "percentage": 80.6
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 97,
+          "percentage": 19.4
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 0,
+          "percentage": 0.0
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 0,
+          "percentage": 0.0
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 61797,
+      "min": 25,
+      "max": 361,
+      "mean": 123.59,
+      "median": 104.0,
+      "stdev": 75.86,
+      "percentiles": {
+        "p5": 34.0,
+        "p25": 68.0,
+        "p50": 104.0,
+        "p75": 169.25,
+        "p95": 286.1,
+        "p99": 336.0
+      },
+      "histogram": [
+        {
+          "range": "25.0-58.6",
+          "count": 103
+        },
+        {
+          "range": "58.6-92.2",
+          "count": 109
+        },
+        {
+          "range": "92.2-125.8",
+          "count": 93
+        },
+        {
+          "range": "125.8-159.4",
+          "count": 56
+        },
+        {
+          "range": "159.4-193.0",
+          "count": 45
+        },
+        {
+          "range": "193.0-226.6",
+          "count": 40
+        },
+        {
+          "range": "226.6-260.2",
+          "count": 16
+        },
+        {
+          "range": "260.2-293.8",
+          "count": 17
+        },
+        {
+          "range": "293.8-327.4",
+          "count": 14
+        },
+        {
+          "range": "327.4-361.0",
+          "count": 7
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 296417,
+      "min": 114,
+      "max": 1764,
+      "mean": 592.83,
+      "median": 496.5,
+      "stdev": 365.05,
+      "percentiles": {
+        "p5": 162.9,
+        "p25": 325.75,
+        "p50": 496.5,
+        "p75": 813.5,
+        "p95": 1370.0,
+        "p99": 1567.41
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 21,
+      "mean": 8.13,
+      "median": 7.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 1.46,
+        "max": 12.11,
+        "mean": 3.86,
+        "median": 3.15
+      },
+      "first_turn_chars": {
+        "mean": 182.9,
+        "median": 184
+      },
+      "last_turn_chars": {
+        "mean": 683.44,
+        "median": 572
+      }
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.0446,
+    "decode_score": 0.0697,
+    "total_payload_score": 0.0572,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.0061797,
+        "avg_context_size": 0.01185668,
+        "multimodal_penalty": 0.0,
+        "context_growth": 0.3860535833683767
+      },
+      "raw": {
+        "total_tokens": 61797,
+        "avg_context_size": 592.834,
+        "multimodal_penalty": 0.0,
+        "context_growth": 3.860535833683767
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.00494376,
+        "num_turns": 0.1783,
+        "avg_response_length": 0.07132,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 24718.800000000003,
+        "num_turns": 1783,
+        "avg_response_length": 3.566,
+        "tool_call_penalty": 0.0
+      }
+    }
+  }
+}

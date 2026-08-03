@@ -1,0 +1,44 @@
+dataset:
+  name: "multi-turn-iso-text-chat"
+  version: "1.0.0"
+  description: "Isometric coherent-text multi-turn conversations for controlled LLM benchmarking"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_iso_text_chat.parquet"
+  seed: 42
+  # Same system prompt is used across iso_text, iso_random, and iso_reasoning
+  # so the system message contributes an identical word count to each dataset.
+  system_prompt: "You are a helpful assistant."
+
+tags:
+  custom:
+    - "isometric"
+    - "controlled"
+    - "coherent"
+    - "text-only"
+
+turns:
+  min: 1
+  max: 10
+  # Distribution of turn counts across the 500 conversations.
+  distribution:
+    short:
+      count: 300
+      min_turns: 1
+      max_turns: 3
+    medium:
+      count: 150
+      min_turns: 4
+      max_turns: 6
+    long:
+      count: 50
+      min_turns: 7
+      max_turns: 10
+
+# Shared per-turn word budget.  The same budget schedule is used by all three
+# isometric generators, which guarantees identical total word counts.
+word_budget:
+  min_per_turn: 18
+  max_per_turn: 38
+  user_share_min: 0.25
+  user_share_max: 0.45

@@ -19,7 +19,10 @@ sys.path.insert(0, str(ROOT))
 from generator_base import BaseConversationGenerator  # noqa: E402
 
 # All directly-runnable generators (mixed is a loader over these, tested separately).
-DATASETS = ["text", "reasoning", "random", "repeat", "pdf", "image", "agentic"]
+DATASETS = [
+    "text", "reasoning", "random", "repeat", "pdf", "image", "agentic",
+    "iso_text", "iso_random", "iso_reasoning",
+]
 
 
 def load_generate_module(dataset: str):
@@ -32,11 +35,15 @@ def load_generate_module(dataset: str):
 
 
 def _find_generator_class(module):
-    for obj in vars(module).values():
+    candidates = [
+        obj for obj in vars(module).values()
         if (isinstance(obj, type)
-                and issubclass(obj, BaseConversationGenerator)
-                and obj is not BaseConversationGenerator):
-            return obj
+            and issubclass(obj, BaseConversationGenerator)
+            and obj is not BaseConversationGenerator
+            and obj.__module__ == module.__name__)
+    ]
+    if candidates:
+        return candidates[0]
     raise LookupError(f"No BaseConversationGenerator subclass in {module.__name__}")
 
 

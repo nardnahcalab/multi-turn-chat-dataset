@@ -1,0 +1,39 @@
+dataset:
+  name: "multi-turn-iso-reasoning-chat"
+  version: "1.0.0"
+  description: "Isometric deep-reasoning multi-turn conversations for controlled LLM benchmarking"
+  num_conversations: 500
+  output_dir: "data"
+  output_filename: "multi_turn_iso_reasoning_chat.parquet"
+  seed: 42
+  system_prompt: "You are a helpful assistant."
+
+tags:
+  custom:
+    - "isometric"
+    - "controlled"
+    - "deep-reasoning"
+    - "step-by-step"
+
+turns:
+  min: 1
+  max: 10
+  distribution:
+    short:
+      count: 300
+      min_turns: 1
+      max_turns: 3
+    medium:
+      count: 150
+      min_turns: 4
+      max_turns: 6
+    long:
+      count: 50
+      min_turns: 7
+      max_turns: 10
+
+word_budget:
+  min_per_turn: 18
+  max_per_turn: 38
+  user_share_min: 0.25
+  user_share_max: 0.45

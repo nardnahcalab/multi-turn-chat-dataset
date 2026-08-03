@@ -1,0 +1,264 @@
+{
+  "manifest_version": "1.0.0",
+  "generated_at": "2026-08-03T21:26:13.972587+00:00",
+  "dataset": {
+    "name": "multi-turn-iso-reasoning-chat",
+    "descriptive_name": "multi_turn_iso_reasoning_chat_n500_s42_v1.0.0_20260803",
+    "type": "iso_reasoning",
+    "version": "1.0.0",
+    "description": "Isometric deep-reasoning multi-turn conversations for controlled LLM benchmarking",
+    "num_conversations": 500,
+    "seed": 42
+  },
+  "tags": {
+    "user_tags": [
+      "isometric",
+      "controlled",
+      "deep-reasoning",
+      "step-by-step"
+    ],
+    "auto_tags": [
+      "synthetic",
+      "multi-turn",
+      "benchmarking",
+      "inference",
+      "prefix-caching",
+      "iso_reasoning",
+      "medium",
+      "n500",
+      "sub-1M-tokens",
+      "medium-context"
+    ],
+    "all_tags": [
+      "benchmarking",
+      "controlled",
+      "deep-reasoning",
+      "inference",
+      "iso_reasoning",
+      "isometric",
+      "medium",
+      "medium-context",
+      "multi-turn",
+      "n500",
+      "prefix-caching",
+      "step-by-step",
+      "sub-1M-tokens",
+      "synthetic"
+    ]
+  },
+  "output_files": {
+    "parquet": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/iso_reasoning/data/multi_turn_iso_reasoning_chat.parquet",
+    "aiperf_multi_turn": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/iso_reasoning/data/multi_turn_iso_reasoning_chat.jsonl",
+    "mooncake_trace": "/mnt/c/Users/rajenb1/apps/src/multi-turn-chat-dataset/iso_reasoning/data/multi_turn_iso_reasoning_chat_mooncake.jsonl"
+  },
+  "distribution_profile": {
+    "turn_distribution": {
+      "min": 1,
+      "max": 10,
+      "mean": 3.57,
+      "median": 3.0,
+      "stdev": 2.25,
+      "percentiles": {
+        "p5": 1.0,
+        "p25": 2.0,
+        "p50": 3.0,
+        "p75": 5.0,
+        "p95": 8.0,
+        "p99": 10.0
+      },
+      "histogram": [
+        {
+          "range": "1.0-1.9",
+          "count": 91
+        },
+        {
+          "range": "1.9-2.8",
+          "count": 108
+        },
+        {
+          "range": "2.8-3.7",
+          "count": 101
+        },
+        {
+          "range": "3.7-4.6",
+          "count": 45
+        },
+        {
+          "range": "4.6-5.5",
+          "count": 58
+        },
+        {
+          "range": "5.5-6.4",
+          "count": 47
+        },
+        {
+          "range": "6.4-7.3",
+          "count": 9
+        },
+        {
+          "range": "7.3-8.2",
+          "count": 19
+        },
+        {
+          "range": "8.2-9.1",
+          "count": 14
+        },
+        {
+          "range": "9.1-10.0",
+          "count": 8
+        }
+      ],
+      "bucket_distribution": [
+        {
+          "bucket": "short (1-5)",
+          "count": 403,
+          "percentage": 80.6
+        },
+        {
+          "bucket": "medium (6-15)",
+          "count": 97,
+          "percentage": 19.4
+        },
+        {
+          "bucket": "long (16-30)",
+          "count": 0,
+          "percentage": 0.0
+        },
+        {
+          "bucket": "very_long (31+)",
+          "count": 0,
+          "percentage": 0.0
+        }
+      ]
+    },
+    "token_distribution": {
+      "total": 63136,
+      "min": 25,
+      "max": 370,
+      "mean": 126.27,
+      "median": 107.5,
+      "stdev": 77.27,
+      "percentiles": {
+        "p5": 35.0,
+        "p25": 69.75,
+        "p50": 107.5,
+        "p75": 173.0,
+        "p95": 294.05,
+        "p99": 341.0
+      },
+      "histogram": [
+        {
+          "range": "25.0-59.5",
+          "count": 103
+        },
+        {
+          "range": "59.5-94.0",
+          "count": 110
+        },
+        {
+          "range": "94.0-128.5",
+          "count": 93
+        },
+        {
+          "range": "128.5-163.0",
+          "count": 55
+        },
+        {
+          "range": "163.0-197.5",
+          "count": 49
+        },
+        {
+          "range": "197.5-232.0",
+          "count": 36
+        },
+        {
+          "range": "232.0-266.5",
+          "count": 18
+        },
+        {
+          "range": "266.5-301.0",
+          "count": 16
+        },
+        {
+          "range": "301.0-335.5",
+          "count": 13
+        },
+        {
+          "range": "335.5-370.0",
+          "count": 7
+        }
+      ]
+    },
+    "character_distribution": {
+      "total": 327430,
+      "min": 120,
+      "max": 1900,
+      "mean": 654.86,
+      "median": 554.0,
+      "stdev": 402.48,
+      "percentiles": {
+        "p5": 172.95,
+        "p25": 356.5,
+        "p50": 554.0,
+        "p75": 899.0,
+        "p95": 1521.05,
+        "p99": 1787.07
+      }
+    },
+    "message_count_distribution": {
+      "min": 3,
+      "max": 21,
+      "mean": 8.13,
+      "median": 7.0
+    },
+    "context_growth": {
+      "growth_ratio": {
+        "min": 1.42,
+        "max": 12.51,
+        "mean": 3.88,
+        "median": 3.16
+      },
+      "first_turn_chars": {
+        "mean": 201.57,
+        "median": 200
+      },
+      "last_turn_chars": {
+        "mean": 754.75,
+        "median": 614
+      }
+    }
+  },
+  "payload_scores": {
+    "prefill_score": 0.0452,
+    "decode_score": 0.0698,
+    "total_payload_score": 0.0575,
+    "prefill_breakdown": {
+      "normalized": {
+        "total_tokens": 0.0063136,
+        "avg_context_size": 0.0130972,
+        "multimodal_penalty": 0.0,
+        "context_growth": 0.38787512881917857
+      },
+      "raw": {
+        "total_tokens": 63136,
+        "avg_context_size": 654.86,
+        "multimodal_penalty": 0.0,
+        "context_growth": 3.878751288191786
+      }
+    },
+    "decode_breakdown": {
+      "normalized": {
+        "total_response_tokens": 0.005050880000000001,
+        "num_turns": 0.1783,
+        "avg_response_length": 0.07132,
+        "tool_call_penalty": 0.0
+      },
+      "raw": {
+        "total_response_tokens": 25254.4,
+        "num_turns": 1783,
+        "avg_response_length": 3.566,
+        "tool_call_penalty": 0.0
+      }
+    }
+  }
+}
